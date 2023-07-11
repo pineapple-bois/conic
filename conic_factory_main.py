@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sympy
 from fractions import Fraction
-from math import sin, cos
 from IPython.display import display
 from poly_dictionary import decompose_polynomial
 
@@ -13,7 +12,14 @@ class Conic:
         self.equation_str, self.equation = self._to_general_form_conic(equation)
         self.coefficients = decompose_polynomial(self.equation_str)
         self.coefficients = self._remove_z_coordinate(self.coefficients)
+        self.A = self.coeff.get((2, 0), 0)
+        self.B = self.coeff.get((1, 1), 0)
+        self.C = self.coeff.get((0, 2), 0)
+        self.D = self.coeff.get((1, 0), 0)
+        self.E = self.coeff.get((0, 1), 0)
+        self.F = self.coeff.get((0, 0), 0)
         self.coeff_matrix = self.create_coeff_matrix()
+        self.quad_matrix = self.create_quad_matrix()
         self.type = self.classify()
         self.expression = None
 
@@ -75,46 +81,45 @@ class Conic:
 
     def create_coeff_matrix(self):
         """
-        Create the matrix of coefficients, as you suggested.
-        We can then use this matrix in all subsequent calculations.
+        Create the matrix of coefficients,
         """
-        A = self.coeff.get((2, 0), 0)
-        B = self.coeff.get((1, 1), 0)   # This is because the coefficient of xy in the equation is B/2
-        C = self.coeff.get((0, 2), 0)
-        D = self.coeff.get((1, 0), 0)   # This is because the coefficient of x in the equation is D/2
-        E = self.coeff.get((0, 1), 0)   # This is because the coefficient of y in the equation is E/2
-        F = self.coeff.get((0, 0), 0)
-
-        matrix = np.array([[A, B / 2, D / 2], [B / 2, C, E / 2], [D / 2, E / 2, F]])
+        matrix = np.array([[self.A, self.B / 2, self.D / 2],
+                           [self.B / 2, self.C, self.E / 2],
+                           [self.D / 2, self.E / 2, self.F]])
         return matrix
 
-    def print_matrix(self):
-        print(self.coeff_matrix)
+    def create_quad_matrix(self):
+        """
+        Create 2x2 sub-matrix from coefficient matrix
+        """
+        matrix = np.array([[self.A, self.B / 2],
+                           [self.B / 2, self.C]])
+        return matrix
+
+    def print_matrices(self):
+        print(f"Matrix of coefficients:\n{self.coeff_matrix}\n\nQuadratic Matrix:\n{self.quad_matrix}")
 
     def classify(self):
         """
         Classify the conic section based on its coefficients.
         Using the determinant of the 2x2 sub-matrix (delta) and the determinant of the 3x3 matrix (Delta).
         """
-        # Calculate the determinant of the 2x2 sub-matrix
-        delta = np.linalg.det(self.coeff_matrix[:2, :2])
+        # Calculate the determinant of the 2x2 quadratic-matrix
+        delta = np.linalg.det(self.quad_matrix)
 
+        # TODO: Methods remain, useful for classification however, unused
         # Calculate trace of the 2x2 sub-matrix
-        tau = np.trace(self.coeff_matrix[:2, :2])
+        tau = np.trace(self.quad_matrix)
 
-        # Calculate the determinant of the 3x3 matrix. Defined but unused... could be useful
+        # Calculate the determinant of the 3x3 matrix. - DEGENERATE CONICS?
         Delta = np.linalg.det(self.coeff_matrix)
-
-        A = self.coeff_matrix[0, 0]
-        B = self.coeff_matrix[0, 1] * 2
-        C = self.coeff_matrix[1, 1]
 
         if delta == 0:
             return "Parabola"
         elif delta < 0:
             return "Hyperbola"
         elif delta > 0:
-            if A == C and B == 0:
+            if self.A == self.C and self.B == 0:
                 return "Circle"
             else:
                 return "Ellipse"
@@ -128,7 +133,7 @@ class Conic:
         :return: General form equation of a conic as string and sympy expression
         """
         x, y = sympy.symbols('x y')
-        equation_str = sympy.sympify(equation)
+        equation_str = sympy.sympify(equation, locals={"sqrt": sympy.sqrt})
 
         # we have in a form y = ax^2 + dx + f or x = cy^2 + ey + f
         # WHAT HAPPENS, when we set all to zero?
@@ -147,6 +152,7 @@ class Conic:
         equation_str = sympy.collect(equation_str, (x, y))
 
         formula = sympy.simplify(equation_str)
+        formula = sympy.expand(formula)     # General form requires ZERO arbitrary factorisation
         formula_str = str(formula)
 
         return formula_str, formula
@@ -188,132 +194,136 @@ class Conic:
         else:
             return self.expression  # Return as a sympy.Poly object
 
-    def plot(self):
-        A, B, C, D, E, F = self.coeff_matrix[0, 0], self.coeff_matrix[0, 1] * 2, self.coeff_matrix[1, 1], \
-                           self.coeff_matrix[0, 2] * 2, self.coeff_matrix[1, 2] * 2, self.coeff_matrix[2, 2]
-
-        x = np.linspace(-10, 10, 400)
-        y = np.linspace(-10, 10, 400)
+    def draw(self):
+        x = np.linspace(-2, 2, 400)
+        y = np.linspace(-2, 2, 400)
         x, y = np.meshgrid(x, y)
 
-        plt.contour(x, y, (A * x ** 2 + B * x * y + C * y ** 2 + D * x + E * y + F), [1], colors='r')
+        plt.contour(x, y, (self.A * x ** 2 + self.B * x * y + self.C * y ** 2
+                           + self.D * x + self.E * y + self.F), [1], colors='r')
         plt.gca().set_aspect('equal', adjustable='box')
         plt.axhline(0, color='gray', linewidth=0.5)
         plt.axvline(0, color='gray', linewidth=0.5)
         plt.title(f"${self.__str__()}$")
         plt.show()
 
-    def compute_transformation(self):
-        """
-        This will probably be subclass method
-        :return: the affine transformation mapping to standard form including the matrix required
-        """
-        # Compute the transformation matrix
-        pass
-
-    def to_standard_form(self):
-        """
-        Also subclass method
-        :return: equation of conic in standard form
-        """
-        # Apply the transformation matrix to the equation and convert it to standard form
-        pass
-
 
 class Parabola(Conic):
     def __init__(self, equation):
         super().__init__(equation)
-        self.A = self.coeff_matrix[0, 0]      # x^2 term
-        self.B = self.coeff_matrix[0, 1] * 2  # Coefficient of xy
-        self.C = self.coeff_matrix[1, 1]      # y^2 term
-        self.D = self.coeff_matrix[0, 2] * 2  # Coefficient of x
-        self.E = self.coeff_matrix[1, 2] * 2  # Coefficient of y
-        self.F = self.coeff_matrix[2, 2]      # Constant
-        self.orientation = self.get_orientation()
-        self.vertex = self.compute_vertex()
-        self.complete_sq_coeff = self.complete_sq_coeff()
+
+    @property
+    def orientation(self):
+        return self.get_orientation()
+
+    @property
+    def axis(self):
+        return self.compute_axis()
+
+    @property
+    def vertex(self):
+        return self.compute_vertex()
+
+    def get_info(self):
+        print(f"{self.__repr__()}\nType: {self.type}\nCoefficients: {self.coeff}"
+              f"\nGeneral Form: {self}\n")
+        self.print_matrices()
+        print(f"\nAngle of rotation: {self.get_rotation_angle()}")
+        print(f"Orientation: {self.get_orientation()}")
+        print(f"Axis of symmetry: {self.axis}")
+        self.plot()
 
     def get_orientation(self):
         # Determine the orientation based on the values of A, B, and C
-        if self.B == 0:
-            if self.A > 0 and self.C == 0:
+        if self.A != 0 and self.C == 0:
+            if self.A > 0:
                 return "vertical", "positive"
-            elif self.A == 0 and self.C > 0:
-                return "horizontal", "negative"
-            elif self.A < 0 and self.C == 0:
+            else:
                 return "vertical", "negative"
-            elif self.A == 0 and self.C < 0:
+        elif self.A == 0 and self.C != 0:
+            if self.C > 0:
                 return "horizontal", "positive"
-        else:
+            else:
+                return "horizontal", "negative"
+        elif self.A != 0 and self.C != 0:
             # For a rotated parabola, return 'R' for now.
             # You will need to compute the angle of rotation here.
-            theta = ...  # compute theta based on the values of A, B, and C
+            theta = 0.5 * sympy.atan2(self.B, (self.A - self.C))
             return "rotated", theta
 
-    def rotate(self):
-        if self.orientation[0] == "vertical":
-            if self.orientation[1] == "positive":
-                theta = 3 * np.pi / 4
-            else:  # "negative"
-                theta = np.pi / 2
-        elif self.orientation[0] == "horizontal":
-            if self.orientation[1] == "positive":
-                theta = 0
-            else:  # "negative"
-                theta = np.pi
-        else:  # "rotated"
-            theta = self.orientation[1]  # theta was stored in orientation tuple
+    def get_rotation_angle(self):
+        # TODO: METHOD - find out which quadrant based on signs of coefficients
+        if self.B ** 2 - 4 * self.A * self.C != 0:
+            raise ValueError('The conic section is not a parabola')
 
-        rotation_matrix = np.array([[np.cos(theta), np.sin(theta)],
-                                    [-np.sin(theta), np.cos(theta)]])
-        rotation = self.matrix().T @ rotation_matrix @ self.matrix
-        return rotation
+        # Avoid division by zero
+        if self.B != 0:
+            theta = sympy.Rational(0.5) * sympy.acot((sympy.Rational(self.A - self.C)) / sympy.Rational(self.B))
+            # convert to numerical result
+            theta = sympy.N(theta)
+            degrees = sympy.N(theta * (180/sympy.pi), 3)
+            return theta, degrees
+        else:
+            print("Not Rotated")
 
-    # TODO: Can we just rotate first based on orientation? then we just need to map to the origin...
-    # TODO: Need some way of storing the new matrix based on the rotation.
-    # should directly compare this to the instantiation equation.
+    def compute_axis(self):
+        if not self.orientation[0] == 'rotated':
+            if self.orientation[0] == 'vertical':
+                axis = sympy.Rational(-self.D / (2 * self.A)).limit_denominator(1000000)
+            else:
+                axis = sympy.Rational(-self.E / (2 * self.C)).limit_denominator(100000)
+        else:
+            x, y = sympy.symbols('x y')
+            gen_eqn = self.save_as_sympy(return_expr=True)
+
+            # Compute the derivatives
+            gen_x = sympy.diff(gen_eqn, x)
+            gen_y = sympy.diff(gen_eqn, y)
+
+            # Factorize the quadratic part
+            alpha = np.sqrt(self.A)
+            if self.B >= 0:
+                beta = np.sqrt(self.C)
+            else:
+                beta = -np.sqrt(self.C)
+            axis = alpha * gen_x + beta * gen_y
+
+        return axis
 
     def compute_vertex(self):
-        if self.orientation[0] == 'vertical':  # Parabola opens up or down
-            a = self.A / -self.E
-            d = self.D / -self.E
-            f = self.F / -self.E
-            h = sympy.Rational(-d / (2 * a)).limit_denominator(100000)
-            k = sympy.Rational(a * h ** 2 + d * h + f).limit_denominator(100000)
-        else:  # Parabola opens to the right or left
-            c = self.C / -self.D
-            e = self.E / -self.D
-            f = self.F / -self.D
-            k = sympy.Rational(-e / (2 * c)).limit_denominator(100000)
-            h = sympy.Rational(c * k ** 2 + e * k + f).limit_denominator(100000)
+        if self.orientation[0] != 'rotated':  # handle vertical and horizontal
+
+            if self.orientation[0] == 'vertical':  # Parabola opens up or down
+                a = self.A / -self.E
+                d = self.D / -self.E
+                f = self.F / -self.E
+                h = sympy.Rational(-d / (2 * a)).limit_denominator(100000)
+                k = sympy.Rational(a * h ** 2 + d * h + f).limit_denominator(100000)
+
+            else:  # Parabola opens to the right or left
+                c = self.C / -self.D
+                e = self.E / -self.D
+                f = self.F / -self.D
+                k = sympy.Rational(-e / (2 * c)).limit_denominator(100000)
+                h = sympy.Rational(c * k ** 2 + e * k + f).limit_denominator(100000)
+
+        else:  # handle rotated case
+            # The logic for computing vertex for rotated parabolas will go here.
+            # This depends on how you plan to compute it. If you're using the axis property
+            # and solve method as in the commented function, you can add those lines here.
+            x, y = sympy.symbols('x y')
+            gen_eqn = self.save_as_sympy(return_expr=True)
+            axis_y = sympy.solve(self.axis, y)[0]  # replace 'axis' with the appropriate variable/method
+            axis_eqn = sympy.Eq(y, axis_y)
+
+            solution = sympy.solve((gen_eqn, axis_eqn), (x, y))
+            if solution:
+                h, k = solution[0]
+            else:
+                h, k = None, None
+                print("No solution found.")
+
         return h, k
-
-    def complete_sq_coeff(self):
-        # Parabola opens upwards or downwards
-        if self.B == 0:
-            a = sympy.Rational(-self.E).limit_denominator(100000)
-        else:  # Parabola opens to the right or left
-            a = sympy.Rational(-self.D).limit_denominator(100000)
-        return a
-
-    def complete_square(self):
-        """
-        This method irrelevant really as we can compute the vertex.
-        Why do we need this...? Not sure,
-        nice for humans?
-        :return:
-        """
-        h, k = self.vertex
-        a = self.complete_sq_coeff
-
-        h_sign = '-' if h < 0 else '+'
-        k_sign = '-' if k < 0 else '+'
-        h, k = abs(h), abs(k)
-
-        if self.orientation[0] == 'vertical':  # Parabola opens upwards or downwards
-            return f"y = (1 / {a}) * (x {h_sign} {h})^2 {k_sign} {k}".replace(" - - ", " + ").replace(" + - ", " - ")
-        else:  # Parabola opens to the right or left
-            return f"x = (1 / {a}) * (y {k_sign} {k})^2 {h_sign} {h}".replace(" - - ", " + ").replace(" + - ", " - ")
 
     def plot(self):
         h, k = self.vertex
@@ -322,17 +332,39 @@ class Parabola(Conic):
         if self.orientation[0] == 'vertical':  # Parabola opens up or down
             x = np.linspace(float(h) - margin, float(h) + margin, 400)
             y = (self.A * x ** 2 + self.D * x + self.F) / -self.E
-        else:  # Parabola opens to the right or left
+            plt.plot(x, y, color='r')
+            plt.axvline(x=self.axis, color='b', linestyle='dotted')
+
+        elif self.orientation[0] == 'horizontal':  # Parabola opens to the right or left
             y = np.linspace(float(k) - margin, float(k) + margin, 400)
             x = (self.C * y ** 2 + self.E * y + self.F) / -self.D
+            plt.plot(x, y, color='r')
+            plt.axhline(y=self.axis, color='b', linestyle='dotted')
 
-        plt.plot(x, y, color='r')
+        elif self.orientation[0] == 'rotated':
+            # Plot the parabola
+            x = np.linspace(-20, 20, 400)
+            y = np.linspace(-20, 20, 400)
+            x, y = np.meshgrid(x, y)
+            plt.contour(x, y, (self.A * x ** 2 + self.B * x * y + self.C * y ** 2
+                            + self.D * x + self.E * y + self.F), [1], colors='r')
+
+            # Plot the axis of symmetry
+            x_sym, y_sym = sympy.symbols('x y')
+            a = self.axis.coeff(x_sym)
+            b = self.axis.coeff(y_sym)
+            m = -a / b  # slope
+            c = self.axis.subs({x_sym: 0, y_sym: 0}) / b  # intercept
+            x_values = np.linspace(-20, 20, 400)
+            y_values = m * x_values - c
+            plt.plot(x_values, y_values, color='b', linestyle='dotted')
+
         plt.gca().set_aspect('equal', adjustable='box')
         plt.axhline(0, color='gray', linewidth=0.5)
         plt.axvline(0, color='gray', linewidth=0.5)
         plt.plot(h, k, 'bo')  # plot the vertex as a blue dot
-        plt.annotate(f'({h}, {k})', (h, k), textcoords="offset points", xytext=(-10, -10), ha='center')  # Annotate vertex
-        plt.title(f"Completed Square:\n${self.complete_square()}$")
+        plt.annotate(f'Vertex', (h, k), textcoords="offset points", xytext=(-10, -10), ha='center')  # Annotate vertex
+        plt.title(f"General Form:\n${self}$")
         plt.show()
 
 
