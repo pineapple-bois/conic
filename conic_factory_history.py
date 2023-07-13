@@ -10,10 +10,14 @@ from plotting import *
 
 class Conic:
     def __init__(self, equation: str):
+        """
+        A class representing a general conic section.
+        :param: an equation of a conic section as a string
+        """
         self.original_input = equation
         self.equation_str, self.equation = self._to_general_form_conic(equation)
         self.coefficients = decompose_polynomial(self.equation_str)
-        self.coefficients = self._remove_z_coordinate(self.coefficients)
+        self._validate_conic()
         self.A = self.coeff.get((2, 0), 0)
         self.B = self.coeff.get((1, 1), 0)
         self.C = self.coeff.get((0, 2), 0)
@@ -28,6 +32,12 @@ class Conic:
 
     @classmethod
     def create(cls, equation: str):
+        """
+        Creates an instance of a Conic subclass based on the type of conic section.
+        -----
+        Raises;
+        ValueError if the type of the conic section cannot be determined.
+        """
         # Create an instance of Conic
         conic = cls(equation)
 
@@ -43,15 +53,6 @@ class Conic:
             return Hyperbola(equation)
         else:
             raise ValueError('Could not determine the type of the conic section')
-
-    @staticmethod
-    def _remove_z_coordinate(coefficients):
-        """
-        Removes any terms with a z coordinate from the coefficient dictionary.
-        :param : Original dictionary of form {(x, y, z): coefficient, ... }
-        :return: New dictionary of form {(x, y): coefficient, ... }
-        """
-        return {(x, y): coeff for (x, y, z), coeff in coefficients.items() if z == 0}
 
     @staticmethod
     def _remove_fraction(equation_str):
@@ -84,9 +85,14 @@ class Conic:
         equation += ' = 0'
         return equation
 
+    def _validate_conic(self):
+        if not any(sum(key) == 2 for key in self.coefficients) \
+                or any(sum(key) > 2 for key in self.coefficients):
+            raise ValueError("The polynomial does not represent a conic section.")
+
     def create_coeff_matrix(self):
         """
-        Create the matrix of coefficients,
+        Creates the matrix of coefficients,
         """
         matrix = np.array([[self.A, self.B / 2, self.D / 2],
                            [self.B / 2, self.C, self.E / 2],
@@ -95,7 +101,7 @@ class Conic:
 
     def create_quad_matrix(self):
         """
-        Create 2x2 sub-matrix from coefficient matrix
+        Creates a 2x2 sub-matrix from the coefficient matrix
         """
         matrix = np.array([[self.A, self.B / 2],
                            [self.B / 2, self.C]])
@@ -107,7 +113,7 @@ class Conic:
     def classify(self):
         """
         Classify the conic section based on its coefficients.
-        Using the determinant of the 2x2 sub-matrix (delta) and the determinant of the 3x3 matrix (Delta).
+        Uses the determinant of the 2x2 sub-matrix (delta) and the determinant of the 3x3 matrix (Delta).
         """
         # Calculate the determinant of the 2x2 quadratic-matrix
         delta = np.linalg.det(self.quad_matrix)
@@ -139,10 +145,6 @@ class Conic:
         """
         x, y = sympy.symbols('x y')
         equation_str = sympy.sympify(equation, locals={"sqrt": sympy.sqrt})
-
-        # we have in a form y = ax^2 + dx + f or x = cy^2 + ey + f
-        # WHAT HAPPENS, when we set all to zero?
-        # subtract either x or y from either side!!
 
         # Check if "y" term exists
         if 'y' not in str(equation_str):
@@ -200,6 +202,10 @@ class Conic:
             return self.expression  # Return as a sympy.Poly object
 
     def draw(self):
+        """
+        Method to quickly plot an instance of a conic.
+        Superseded by more advanced plotting operations in subclasses
+        """
         x = np.linspace(-10, 10, 400)
         y = np.linspace(-10, 10, 400)
         x, y = np.meshgrid(x, y)
@@ -214,6 +220,9 @@ class Conic:
 
 
 class Parabola(Conic):
+    """
+    A class that represents a Parabola, extending the Conic class.
+    """
     def __init__(self, equation):
         super().__init__(equation)
         self.history = []
@@ -264,6 +273,22 @@ class Parabola(Conic):
         self.plot_parabola()
 
     def get_orientation(self):
+        """
+        Determine the orientation of the parabola in E^2.
+
+        The orientation is computed based on the coefficients of the parabola equation.
+        If the parabola is rotated, the method also returns the angle of rotation in radians.
+
+        Returns
+        -------
+        str, str or float
+            If parabola is vertical or horizontal, returns a tuple of two strings:
+            the first string represents the orientation ('vertical' or 'horizontal'),
+            the second string indicates the direction ('positive' or 'negative').
+
+            If parabola is rotated, returns a tuple where the first element is 'rotated',
+            and the second element is the angle of rotation in radians.
+        """
         if self.A != 0 and self.C == 0:
             if self.A > 0:
                 return "vertical", "positive"
@@ -285,6 +310,17 @@ class Parabola(Conic):
             return "rotated", theta
 
     def compute_axis(self):
+        """
+        Computes the axis of symmetry
+
+        For a non-rotated parabola, the axis is computed using the coefficients of the equation.
+        For a rotated parabola, the axis is computed using the derivatives of the general equation.
+
+        Returns
+        -------
+        The equation of the axis in the form of a sympy Rational number for non-rotated parabolas.
+        For rotated parabolas, returns a sympy Add object representing the equation of the axis.
+        """
         if not self.orientation[0] == 'rotated':
             if self.orientation[0] == 'vertical':
                 axis = sympy.Rational(-self.D / (2 * self.A)).limit_denominator(1000000)
@@ -309,6 +345,13 @@ class Parabola(Conic):
         return axis
 
     def compute_vertex(self):
+        """
+        Computes the vertex.
+
+        For a non-rotated parabola, the vertex is computed using the coefficients of the equation.
+        The method will handle both vertical and horizontal parabolas.
+        For a rotated parabola, a different method is employed, and None is returned for both h and k.
+        """
         if self.orientation[0] != 'rotated':  # handle vertical and horizontal
             if self.orientation[0] == 'vertical':  # Parabola opens up or down
                 a = self.A / -self.E
@@ -338,14 +381,26 @@ class Parabola(Conic):
             return x
 
     def rotate_parabola(self, rational=False):
+        """
+        Rotate the parabola until orientation, "horizontal, positive" or "standard form".
+
+        This method uses a rotation matrix to rotate the parabola. The rotation angle is
+        determined based on the parabola's orientation.
+
+        This function is recursive: if the resulting parabola is not a "horizontal, positive"
+        one after rotation, this function will be called again until the desired orientation
+        is achieved.
+
+        The rotation operation is recorded in the object's history.
+        """
         self.history.append(f"Equation: {str(self)}")
         orientation, rotation_angle = self.get_orientation()
 
         if orientation == "vertical":
             if rotation_angle == "positive":
-                rotation_angle = sympy.pi * 3 / 2  # 270 degrees in radians
+                rotation_angle = sympy.pi * 3 / 2  # 270 degrees
             elif rotation_angle == "negative":
-                rotation_angle = sympy.pi / 2  # 90 degrees in radians
+                rotation_angle = sympy.pi / 2  # 90 degrees
         elif orientation == "horizontal":
             rotation_angle = sympy.pi if rotation_angle == "negative" else 0
 
@@ -375,7 +430,7 @@ class Parabola(Conic):
 
         # Update state from the new matrix and record the new state in history
         self.history.append(f"Performed rotation by {sympy.N(rotation_angle * 180/sympy.pi, 4)} degrees CCW")
-        self.update_from_matrix()
+        self._update_from_matrix()
         self.record_state()
 
         # After rotating, if the parabola isn't oriented as 'horizontal, positive',
@@ -385,6 +440,15 @@ class Parabola(Conic):
             self.rotate_parabola(rational)
 
     def translate_origin(self, rational=False):
+        """
+        Translate the parabola so vertex is at the origin.
+
+        This method uses an affine transformation.
+
+        The translation operation is recorded in the object's history. After translation, if the
+        vertex of the parabola is at the origin and its orientation is "horizontal, positive",
+        the parabola is considered to be in its standard form.
+        """
         h, k = self.vertex[0], self.vertex[1]
         original = h, k
 
@@ -405,13 +469,13 @@ class Parabola(Conic):
 
         # Update state from the new matrix and record the new state in history
         self.history.append(f"Affine transformation of vertex {original} to the origin")
-        self.update_from_matrix()
+        self._update_from_matrix()
         self.record_state()
         # Update standard_form flag
         if self.vertex == (0, 0) and self.orientation == ('horizontal', 'positive'):
             self.standard_form = True
 
-    def update_coefficients(self):
+    def _update_coefficients(self):
         self.A = self.coeff_matrix[0, 0]
         self.B = 2 * self.coeff_matrix[0, 1]  # Remember we stored B/2 in the matrix
         self.C = self.coeff_matrix[1, 1]
@@ -419,9 +483,9 @@ class Parabola(Conic):
         self.E = 2 * self.coeff_matrix[1, 2]  # Remember we stored E/2 in the matrix
         self.F = self.coeff_matrix[2, 2]
 
-    def update_from_matrix(self):
+    def _update_from_matrix(self):
         # Update coefficients from the matrix
-        self.update_coefficients()
+        self._update_coefficients()
 
         # Create the new coefficient dictionary
         self.coefficients = {
@@ -438,6 +502,9 @@ class Parabola(Conic):
         self.equation = str(self.expression)
 
     def record_state(self):
+        """
+        This method records the current state of the parabola in the history of the object.
+        """
         # Store the current state in history
         self.history.append({
             'Coefficients': self.coefficients,
@@ -448,6 +515,9 @@ class Parabola(Conic):
         })
 
     def print_history(self):
+        """
+        This method prints the history of the transformations applied to the parabola
+        """
         print(f"Original input:\n{self.original_input}\n")
         for item in self.history:
             if isinstance(item, str):
@@ -463,6 +533,59 @@ class Parabola(Conic):
         parabola_standard(self, x_range, y_range)
 
 
+class Circle(Conic):
+    def __init__(self, equation):
+        super().__init__(equation)
+        self.history = []
+
+    @property
+    def radius(self):
+        return self.compute_radius()
+
+    @property
+    def center(self):
+        return self.compute_center()
+
+    def compute_radius(self):
+        """Compute and return the radius of the circle."""
+        return sympy.sqrt(self.A**2 + self.B**2 - 4*self.F) / 2
+
+    def compute_center(self):
+        """Compute and return the center of the circle."""
+        return -self.A/2, -self.B/2
+
+    def translate_center(self):
+        """Perform an affine transformation to translate the center of the circle to the origin."""
+        h, k = self.center
+        original = h, k
+
+        # Translation Matrix
+        T = np.array([[1, 0, h],
+                      [0, 1, k],
+                      [0, 0, 1]])
+
+        self.coeff_matrix = T.T @ self.coeff_matrix @ T
+        threshold = 1e-14
+        self.coeff_matrix = np.where(abs(self.coeff_matrix) < threshold, 0, self.coeff_matrix)
+
+        # Update state from the new matrix and record the new state in history
+        self.history.append(f"Affine transformation of center {original} to the origin")
+        self.update_from_matrix()
+        self.record_state()
+
+    def update_from_matrix(self):
+        # Similar to Parabola class
+        pass
+
+    def record_state(self):
+        # Similar to Parabola class
+        pass
+
+    def print_history(self):
+        # Similar to Parabola class
+        pass
+
+
 class Ellipse(Conic):
     def __init__(self, equation):
         super().__init__(equation)
@@ -470,15 +593,6 @@ class Ellipse(Conic):
 
     def draw(self):
         pass  # Implement plotting for ellipse
-
-
-class Circle(Conic):
-    def __init__(self, equation):
-        super().__init__(equation)
-        # Compute any properties unique to circles here
-
-    def draw(self):
-        pass  # Implement plotting for circle
 
 
 class Hyperbola(Conic):
