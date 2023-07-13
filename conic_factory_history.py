@@ -85,6 +85,33 @@ class Conic:
         equation += ' = 0'
         return equation
 
+    def _to_general_form_conic(self, equation: str):
+        """
+        Takes the string, works out the LCM, collects like terms
+        then reduces the resultant as far as possible.
+        :return: General form equation of a conic as string and sympy expression
+        """
+        x, y = sympy.symbols('x y')
+        equation_str = sympy.sympify(equation, locals={"sqrt": sympy.sqrt})
+
+        # Check if "y" term exists
+        if 'y' not in str(equation_str):
+            equation_str -= y  # subtracting y term - quadratics of the form x^2 + 5x + 9
+
+        # Check if "x" term exists
+        if 'x' not in str(equation_str):
+            equation_str -= x  # subtracting x term - quadratics of form y^2 + 5y + 9
+
+        equation_str = sympy.expand(equation_str)
+        equation_str = self._remove_fraction(equation_str)
+        equation_str = sympy.collect(equation_str, (x, y))
+
+        formula = sympy.simplify(equation_str)
+        formula = sympy.expand(formula)     # General form requires ZERO arbitrary factorisation
+        formula_str = str(formula)
+
+        return formula_str, formula
+
     def _validate_conic(self):
         if not any(sum(key) == 2 for key in self.coefficients) \
                 or any(sum(key) > 2 for key in self.coefficients):
@@ -136,33 +163,6 @@ class Conic:
                 return "Ellipse"
         else:
             return "Unknown"
-
-    def _to_general_form_conic(self, equation: str):
-        """
-        Takes the string, works out the LCM, collects like terms
-        then reduces the resultant as far as possible.
-        :return: General form equation of a conic as string and sympy expression
-        """
-        x, y = sympy.symbols('x y')
-        equation_str = sympy.sympify(equation, locals={"sqrt": sympy.sqrt})
-
-        # Check if "y" term exists
-        if 'y' not in str(equation_str):
-            equation_str -= y  # subtracting y term - quadratics of the form x^2 + 5x + 9
-
-        # Check if "x" term exists
-        if 'x' not in str(equation_str):
-            equation_str -= x  # subtracting x term - quadratics of form y^2 + 5y + 9
-
-        equation_str = sympy.expand(equation_str)
-        equation_str = self._remove_fraction(equation_str)
-        equation_str = sympy.collect(equation_str, (x, y))
-
-        formula = sympy.simplify(equation_str)
-        formula = sympy.expand(formula)     # General form requires ZERO arbitrary factorisation
-        formula_str = str(formula)
-
-        return formula_str, formula
 
     def _convert_to_sympy_expression(self, rational=False, force=True):
         """
