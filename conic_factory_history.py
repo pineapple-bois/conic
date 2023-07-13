@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import sympy
 from fractions import Fraction
 from IPython.display import display
-from matplotlib.lines import Line2D
 from poly_dictionary import decompose_polynomial
 from plotting import *
 
@@ -81,6 +81,7 @@ class Conic:
         """
         equation = sympy.printing.sstr(self.equation)
         equation = str(equation).replace('**', '^').replace('*', '').replace('sqrt', '√')
+        equation += ' = 0'
         return equation
 
     def create_coeff_matrix(self):
@@ -246,20 +247,20 @@ class Parabola(Conic):
     def directrix(self):
         if not self.standard_form:
             raise ValueError("The parabola is not in standard form")
-        return -self.a
+        return - self.a
 
     @property
     def latus_rectum(self):
         if not self.standard_form:
             raise ValueError("The parabola is not in standard form")
-        return 4*self.a
+        return 4 * self.a
 
     def get_info(self):
         print(f"{self.__repr__()}\nType: {self.type}\nCoefficients: {self.coeff}"
               f"\nGeneral Form: {self}\n")
         self.print_matrices()
         print(f"\nOrientation: {self.get_orientation()}")
-        print(f"Axis of symmetry: {self.axis}")
+        print(f"Axis of symmetry: {str(self.axis)}")
         self.plot_parabola()
 
     def get_orientation(self):
@@ -337,6 +338,7 @@ class Parabola(Conic):
             return x
 
     def rotate_parabola(self, rational=False):
+        self.history.append(f"Equation: {str(self)}")
         orientation, rotation_angle = self.get_orientation()
 
         if orientation == "vertical":
@@ -440,7 +442,7 @@ class Parabola(Conic):
         self.history.append({
             'Coefficients': self.coefficients,
             'Matrix': self.coeff_matrix,
-            'Equation': self.equation,
+            'Equation': str(self),
             'Orientation': self.orientation,
             'Vertex': self.vertex
         })

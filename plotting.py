@@ -71,7 +71,7 @@ def plot_parabola(conic, x_range=None, y_range=None):
     plt.ylim(y_range)
     plt.axhline(0, color='gray', linewidth=0.5)
     plt.axvline(0, color='gray', linewidth=0.5)
-    plt.title(f"${str(conic)}$")
+    plt.title(f"General Form:\n${str(conic)}$")
     plt.show()
 
 def parabola_standard(conic, x_range=None, y_range=None):
@@ -95,7 +95,7 @@ def parabola_standard(conic, x_range=None, y_range=None):
     plt.axvline(0, color='gray', linewidth=0.5)
     plt.xlim(x_range)
     plt.ylim(y_range)
-    plt.title(f'Parabola in standard form\n${conic}$')
+    plt.title(f'Standard Form:\n${conic}$')
     plt.legend(loc='best')  # This will place the legend at the location that covers the least amount of data.
     plt.show()
 
