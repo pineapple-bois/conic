@@ -5,6 +5,7 @@ from fractions import Fraction
 from IPython.display import display
 from matplotlib.lines import Line2D
 from poly_dictionary import decompose_polynomial
+from plotting import *
 
 
 class Conic:
@@ -185,7 +186,7 @@ class Conic:
         Displays the sympy expression of the polynomial using IPython's display system.
         """
         self._convert_to_sympy_expression()
-        display(self.expression)
+        display(self.expression.as_expr())
 
     def save_as_sympy(self, rational=False, return_expr=False):
         """
@@ -210,14 +211,12 @@ class Conic:
         plt.title(f"${self.__str__()}$")
         plt.show()
 
-    # TODO: NEED TO DEAL WITH SPECIAL ANGLES IN [30, 45, 60] DEGREES
-    # TODO: NEED TO UPDATE THE INFO AND EQUATION WITHIN SUBCLASS
-    # TODO: NEED TO WORK ON THE TRANSLATION TO STANDARD POSITION & WRITE IN FORM Y^2=4AX
 
 class Parabola(Conic):
     def __init__(self, equation):
         super().__init__(equation)
         self.history = []
+        self.standard_form = False
 
     @property
     def orientation(self):
@@ -231,13 +230,37 @@ class Parabola(Conic):
     def vertex(self):
         return self.compute_vertex()
 
+    @property
+    def a(self):
+        if not self.standard_form:
+            raise ValueError("The parabola is not in standard form")
+        return - self.D / (4 * self.C)
+
+    @property
+    def focus(self):
+        if not self.standard_form:
+            raise ValueError("The parabola is not in standard form")
+        return self.a, 0
+
+    @property
+    def directrix(self):
+        if not self.standard_form:
+            raise ValueError("The parabola is not in standard form")
+        return -self.a
+
+    @property
+    def latus_rectum(self):
+        if not self.standard_form:
+            raise ValueError("The parabola is not in standard form")
+        return 4*self.a
+
     def get_info(self):
         print(f"{self.__repr__()}\nType: {self.type}\nCoefficients: {self.coeff}"
               f"\nGeneral Form: {self}\n")
         self.print_matrices()
         print(f"\nOrientation: {self.get_orientation()}")
         print(f"Axis of symmetry: {self.axis}")
-        self.plot()
+        self.plot_parabola()
 
     def get_orientation(self):
         if self.A != 0 and self.C == 0:
@@ -259,6 +282,59 @@ class Parabola(Conic):
         elif self.A != 0 and self.C != 0:
             theta = 0.5 * sympy.atan2(self.B, (self.A - self.C))
             return "rotated", theta
+
+    def compute_axis(self):
+        if not self.orientation[0] == 'rotated':
+            if self.orientation[0] == 'vertical':
+                axis = sympy.Rational(-self.D / (2 * self.A)).limit_denominator(1000000)
+            else:
+                axis = sympy.Rational(-self.E / (2 * self.C)).limit_denominator(100000)
+        else:
+            x, y = sympy.symbols('x y')
+            gen_eqn = self.save_as_sympy(return_expr=True)
+
+            # Compute the derivatives
+            gen_x = sympy.diff(gen_eqn, x)
+            gen_y = sympy.diff(gen_eqn, y)
+
+            # Factorize the quadratic part
+            alpha = sympy.sqrt(self.A)
+            if self.B >= 0:
+                beta = sympy.sqrt(self.C)
+            else:
+                beta = -sympy.sqrt(self.C)
+            axis = alpha * gen_x + beta * gen_y
+
+        return axis
+
+    def compute_vertex(self):
+        if self.orientation[0] != 'rotated':  # handle vertical and horizontal
+            if self.orientation[0] == 'vertical':  # Parabola opens up or down
+                a = self.A / -self.E
+                d = self.D / -self.E
+                f = self.F / -self.E
+                h = self._rational_or_radical(-d / (2 * a))
+                k = self._rational_or_radical(a * h ** 2 + d * h + f)
+            else:  # Parabola opens to the right or left
+                c = self.C / -self.D
+                e = self.E / -self.D
+                f = self.F / -self.D
+                k = self._rational_or_radical(-e / (2 * c))
+                h = self._rational_or_radical(c * k ** 2 + e * k + f)
+        else:  # handle rotated case
+            h = None
+            k = None
+
+        return h, k
+
+    def _rational_or_radical(self, x):
+        """
+        Convert x to a rational number if it is a float, otherwise leave it as it is.
+        """
+        if isinstance(x, (float, int, sympy.Float)):
+            return sympy.Rational(x).limit_denominator(100000)
+        else:
+            return x
 
     def rotate_parabola(self, rational=False):
         orientation, rotation_angle = self.get_orientation()
@@ -306,6 +382,33 @@ class Parabola(Conic):
         if orientation == "vertical" or (orientation == "horizontal" and rotation_angle == "negative"):
             self.rotate_parabola(rational)
 
+    def translate_origin(self, rational=False):
+        h, k = self.vertex[0], self.vertex[1]
+        original = h, k
+
+        # Translation Matrix
+        T = np.array([[1, 0, h],
+                      [0, 1, k],
+                      [0, 0, 1]])
+
+        self.coeff_matrix = T.T @ self.coeff_matrix @ T
+        threshold = 1e-14
+        self.coeff_matrix = np.where(abs(self.coeff_matrix) < threshold, 0, self.coeff_matrix)
+
+        if rational:
+            for i in range(self.coeff_matrix.shape[0]):
+                for j in range(self.coeff_matrix.shape[1]):
+                    self.coeff_matrix[i, j] = sympy.Rational(self.coeff_matrix[i, j])
+                # Now all entries in coeff_matrix are SymPy Rationals
+
+        # Update state from the new matrix and record the new state in history
+        self.history.append(f"Affine transformation of vertex {original} to the origin")
+        self.update_from_matrix()
+        self.record_state()
+        # Update standard_form flag
+        if self.vertex == (0, 0) and self.orientation == ('horizontal', 'positive'):
+            self.standard_form = True
+
     def update_coefficients(self):
         self.A = self.coeff_matrix[0, 0]
         self.B = 2 * self.coeff_matrix[0, 1]  # Remember we stored B/2 in the matrix
@@ -338,7 +441,8 @@ class Parabola(Conic):
             'Coefficients': self.coefficients,
             'Matrix': self.coeff_matrix,
             'Equation': self.equation,
-            'Orientation': self.orientation
+            'Orientation': self.orientation,
+            'Vertex': self.vertex
         })
 
     def print_history(self):
@@ -350,126 +454,11 @@ class Parabola(Conic):
                 for key, value in item.items():
                     print(f"{key} :\n{value}\n")
 
-    def compute_axis(self):
-        if not self.orientation[0] == 'rotated':
-            if self.orientation[0] == 'vertical':
-                axis = sympy.Rational(-self.D / (2 * self.A)).limit_denominator(1000000)
-            else:
-                axis = sympy.Rational(-self.E / (2 * self.C)).limit_denominator(100000)
-        else:
-            x, y = sympy.symbols('x y')
-            gen_eqn = self.save_as_sympy(return_expr=True)
+    def plot_parabola(self, x_range=None, y_range=None):
+        plot_parabola(self, x_range, y_range)
 
-            # Compute the derivatives
-            gen_x = sympy.diff(gen_eqn, x)
-            gen_y = sympy.diff(gen_eqn, y)
-
-            # Factorize the quadratic part
-            alpha = np.sqrt(self.A)
-            if self.B >= 0:
-                beta = np.sqrt(self.C)
-            else:
-                beta = -np.sqrt(self.C)
-            axis = alpha * gen_x + beta * gen_y
-
-        return axis
-
-    def compute_vertex(self):
-        if self.orientation[0] != 'rotated':  # handle vertical and horizontal
-            if self.orientation[0] == 'vertical':  # Parabola opens up or down
-                a = self.A / -self.E
-                d = self.D / -self.E
-                f = self.F / -self.E
-                h = self._rational_or_radical(-d / (2 * a))
-                k = self._rational_or_radical(a * h ** 2 + d * h + f)
-            else:  # Parabola opens to the right or left
-                c = self.C / -self.D
-                e = self.E / -self.D
-                f = self.F / -self.D
-                k = self._rational_or_radical(-e / (2 * c))
-                h = self._rational_or_radical(c * k ** 2 + e * k + f)
-        else:  # handle rotated case
-            h = None
-            k = None
-        return h, k
-
-    def _rational_or_radical(self, x):
-        """
-        Convert x to a rational number if it is a float, otherwise leave it as it is.
-        """
-        if isinstance(x, (float, int, sympy.Float)):
-            return sympy.Rational(x).limit_denominator(100000)
-        else:
-            return x
-
-    def plot(self, x_range=None, y_range=None):
-        # Increase figure size
-        plt.figure(figsize=(10, 8))  # Adjust the values as per your desired size
-
-        if self.orientation[0] == 'rotated':
-            if not x_range:
-                x_range = [-10, 10]
-            if not y_range:
-                y_range = [-10, 10]
-        else:
-            h, k = self.vertex
-            if not x_range:  # use default range if not provided
-                x_range = [float(h) - 5, float(h) + 5]
-            if not y_range:
-                y_range = [float(k) - 5, float(k) + 5]
-
-        if self.orientation[0] == 'vertical':  # Parabola opens up or down
-            x = np.linspace(x_range[0], x_range[1], 400)
-            y = (self.A * x ** 2 + self.D * x + self.F) / -self.E
-            plt.plot(x, y, color='r')
-            plt.axvline(x=self.axis, color='b', linestyle='dotted')
-            plt.plot(h, k, 'bo')  # plot the vertex as a blue dot
-            plt.annotate(f'Vertex', (h, k), textcoords="offset points",
-                         xytext=(-10, -10), ha='center')  # Annotate vertex
-            custom_lines = [Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10),
-                            Line2D([0], [0], color='blue', linestyle='dotted')]
-            axis_label = f"x={self.axis}"
-            plt.legend(custom_lines, [f'Vertex: ({h}, {k})', axis_label], loc='best')
-
-
-        elif self.orientation[0] == 'horizontal':  # Parabola opens to the right or left
-            y = np.linspace(y_range[0], y_range[1], 400)
-            x = (self.C * y ** 2 + self.E * y + self.F) / -self.D
-            plt.plot(x, y, color='r')
-            plt.axhline(y=self.axis, color='b', linestyle='dotted')
-            plt.plot(h, k, 'bo')  # plot the vertex as a blue dot
-            plt.annotate(f'Vertex', (h, k), textcoords="offset points",
-                         xytext=(-10, -10), ha='center')  # Annotate vertex
-            custom_lines = [Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10),
-                            Line2D([0], [0], color='blue', linestyle='dotted')]
-            axis_label = f"y={self.axis}"
-            plt.legend(custom_lines, [f'Vertex: ({h}, {k})', axis_label], loc='best')
-
-        elif self.orientation[0] == 'rotated':
-            # This will require both x and y ranges
-            x = np.linspace(x_range[0], x_range[1], 400)
-            y = np.linspace(y_range[0], y_range[1], 400)
-            x, y = np.meshgrid(x, y)
-            plt.contour(x, y, (self.A * x ** 2 + self.B * x * y + self.C * y ** 2
-                               + self.D * x + self.E * y + self.F), [1], colors='r')
-
-            # Plot the axis of symmetry
-            x_sym, y_sym = sympy.symbols('x y')
-            a = self.axis.coeff(x_sym)
-            b = self.axis.coeff(y_sym)
-            m = -a / b  # slope
-            c = self.axis.subs({x_sym: 0, y_sym: 0}) / b  # intercept
-            x_values = np.linspace(x_range[0], x_range[1], 400)
-            y_values = m * x_values - c
-            plt.plot(x_values, y_values, color='b', linestyle='dotted')
-
-        plt.gca().set_aspect('equal', adjustable='box')
-        plt.xlim(x_range)
-        plt.ylim(y_range)
-        plt.axhline(0, color='gray', linewidth=0.5)
-        plt.axvline(0, color='gray', linewidth=0.5)
-        plt.title(f"${str(self)}$")
-        plt.show()
+    def plot_standard(self, x_range=None, y_range=None):
+        parabola_standard(self, x_range, y_range)
 
 
 class Ellipse(Conic):
