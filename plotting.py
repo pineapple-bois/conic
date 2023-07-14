@@ -101,3 +101,30 @@ def parabola_standard(conic, x_range=None, y_range=None):
 
 
 # CIRCLES
+
+
+def plot_circle(conic, x_range=None, y_range=None):
+    plt.figure(figsize=(10, 8))  # Adjust the values as per your desired size
+    if not x_range:
+        x_range = [-10, 10]
+    if not y_range:
+        y_range = [-10, 10]
+
+    theta = np.linspace(0, 2*np.pi, 1000)
+    r = conic.radius
+
+    x_centre, y_centre = conic.centre
+
+    x = x_centre + r * np.cos(theta)
+    y = y_centre + r * np.sin(theta)
+
+    plt.plot(x, y, label='Circle')
+    plt.scatter(x_centre, y_centre, color='r', label=f'Center: ({x_centre}, {y_centre})')  # plot the center
+    plt.axhline(0, color='gray', linewidth=0.5)
+    plt.axvline(0, color='gray', linewidth=0.5)
+    plt.xlim(x_range)
+    plt.ylim(y_range)
+    plt.title(f'Standard Form:\n${conic}$')
+    plt.legend(loc='best')  # This will place the legend at the location that covers the least amount of data.
+    plt.gca().set_aspect('equal')  # Ensure aspect ratio is equal
+    plt.show()
