@@ -87,7 +87,15 @@ def parabola_standard(conic, x_range=None, y_range=None):
     y = np.linspace(y_range[0], y_range[1], 400)
     x = y**2 / (4 * conic.a)
 
+    # Plot parabola
     plt.plot(x, y, label='Parabola')
+
+    # Plot the radius of curvature
+    theta = np.linspace(0, 2*np.pi, 1000)
+    x_circle = 2*conic.a + 2*conic.a * np.cos(theta)
+    y_circle = 2*conic.a * np.sin(theta)
+    plt.plot(x_circle, y_circle, label='Radius of curvature')
+
     plt.scatter(conic.a, 0, color='r', label=f'Focus: ${conic.focus}$')  # plot the focus
     plt.plot([conic.a, conic.a], [-2*conic.a, 2*conic.a], color='g', label=f'Latus Rectum: ${conic.latus_rectum}$')  # plot the latus rectum
     plt.axvline(-conic.a, color='r', linestyle='--', label=f'Directrix: ${conic.directrix}$')  # plot the directrix
@@ -96,6 +104,7 @@ def parabola_standard(conic, x_range=None, y_range=None):
     plt.xlim(x_range)
     plt.ylim(y_range)
     plt.title(f'Standard Form:\n${conic}$')
+    plt.gca().set_aspect('equal', adjustable='box')
     plt.legend(loc='best')  # This will place the legend at the location that covers the least amount of data.
     plt.show()
 

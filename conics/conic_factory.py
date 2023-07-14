@@ -4,8 +4,8 @@ from matplotlib.lines import Line2D
 import sympy
 from fractions import Fraction
 from IPython.display import Math, display
-from poly_dictionary import decompose_polynomial
-from plotting import *
+from conics.poly_dictionary import decompose_polynomial
+from conics.plotting import *
 
 
 class Conic:
@@ -52,7 +52,7 @@ class Conic:
         elif conic_type == "Hyperbola":
             return Hyperbola(equation)
         else:
-            raise ValueError('Could not determine the type of the conic section')
+            raise ValueError('Cannot instantiate this type of the conic section')
 
     @staticmethod
     def _remove_fraction(equation_str):
@@ -152,7 +152,9 @@ class Conic:
         # Calculate the determinant of the 3x3 matrix. - DEGENERATE CONICS?
         Delta = np.linalg.det(self.coeff_matrix)
 
-        if delta == 0:
+        if Delta == 0:
+            return "Degenerate"
+        elif delta == 0:
             return "Parabola"
         elif delta < 0:
             return "Hyperbola"
