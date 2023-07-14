@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import sympy
 from fractions import Fraction
-from IPython.display import display
+from IPython.display import Math, display
 from poly_dictionary import decompose_polynomial
 from plotting import *
 
@@ -380,7 +380,7 @@ class Parabola(Conic):
         else:
             return x
 
-    def rotate_parabola(self, rational=False):
+    def rotate_parabola(self, rational=False, display=False):
         """
         Rotate the parabola until orientation, "horizontal, positive" or "standard form".
 
@@ -433,13 +433,35 @@ class Parabola(Conic):
         self._update_from_matrix()
         self.record_state()
 
+        if display:
+            self.symbolic_rotation()
+
         # After rotating, if the parabola isn't oriented as 'horizontal, positive',
         # recursively rotate again
         orientation, rotation_angle = self.get_orientation()
         if orientation == "vertical" or (orientation == "horizontal" and rotation_angle == "negative"):
             self.rotate_parabola(rational)
 
-    def translate_origin(self, rational=False):
+    def symbolic_rotation(self):
+        # Define your rotation matrix R
+        theta = sympy.symbols('theta')
+        R = sympy.Matrix([
+            [sympy.cos(theta), sympy.sin(theta), 0],
+            [-sympy.sin(theta), sympy.cos(theta), 0],
+            [0, 0, 1]])
+
+        # Suppose your coeff_matrix is C (a 3x3 matrix)
+        A, B, C, D, E, F = sympy.symbols('A B C D E F')
+        M = sympy.Matrix([
+            [A, B / 2, D / 2],
+            [B / 2, C, E / 2],
+            [D / 2, E / 2, F]])
+
+        # Display the symbolic operation
+        display(Math('\\textbf{R}^T \cdot \\textbf{M} \cdot \\textbf{R}'))
+        display(Math(f'{sympy.latex(R.transpose())} \cdot {sympy.latex(M)} \cdot {sympy.latex(R)}'))
+
+    def translate_origin(self, rational=False, display=False):
         """
         Translate the parabola so vertex is at the origin.
 
@@ -471,9 +493,29 @@ class Parabola(Conic):
         self.history.append(f"Affine transformation of vertex {original} to the origin")
         self._update_from_matrix()
         self.record_state()
+
+        if display:
+            self.symbolic_translation()
+
         # Update standard_form flag
         if self.vertex == (0, 0) and self.orientation == ('horizontal', 'positive'):
             self.standard_form = True
+
+    def symbolic_translation(self):
+        h, k = sympy.symbols('h k')
+        T = sympy.Matrix([[1, 0, h],
+                          [0, 1, k],
+                          [0, 0, 1]])
+
+        A, B, C, D, E, F = sympy.symbols('A B C D E F')
+        M = sympy.Matrix([
+            [A, B / 2, D / 2],
+            [B / 2, C, E / 2],
+            [D / 2, E / 2, F]])
+
+        # Display the symbolic operation
+        display(Math('\\textbf{T}^T \cdot \\textbf{M} \cdot \\textbf{T}'))
+        display(Math(f'{sympy.latex(T.transpose())} \cdot {sympy.latex(M)} \cdot {sympy.latex(T)}'))
 
     def _update_coefficients(self):
         self.A = self.coeff_matrix[0, 0]
@@ -543,47 +585,41 @@ class Circle(Conic):
         return self.compute_radius()
 
     @property
-    def center(self):
-        return self.compute_center()
+    def centre(self):
+        return self.compute_centre()
+
+    @property
+    def area(self):
+        return self.compute_area()
+
+    @property
+    def circumference(self):
+        return self.compute_circumference()
+
+    def get_info(self, x_range=None, y_range=None):
+        print(f"{self.__repr__()}\nType: {self.type}\nCoefficients: {self.coeff}"
+              f"\nGeneral Form: {self}\n\nRadius: {self.radius:.2f}\n\n"
+              f"Area: {self.area[0]}\napprox {self.area[1]} sq. units"
+              f"\n\nCircumference: {self.circumference[0]}\napprox {self.circumference[1]} units\n")
+        self.print_matrices()
+        self.plot_circle(x_range, y_range)
+
+    def compute_centre(self):
+        """Compute and return the center of the circle."""
+        return -self.D / 2, -self.E / 2
 
     def compute_radius(self):
         """Compute and return the radius of the circle."""
-        return sympy.sqrt(self.A**2 + self.B**2 - 4*self.F) / 2
+        return sympy.sqrt((self.D ** 2 / 4) + (self.E ** 2 / 4) - self.F)
 
-    def compute_center(self):
-        """Compute and return the center of the circle."""
-        return -self.A/2, -self.B/2
+    def compute_area(self):
+        return sympy.pi * self.radius ** 2, sympy.N(sympy.pi * self.radius ** 2, 6)
 
-    def translate_center(self):
-        """Perform an affine transformation to translate the center of the circle to the origin."""
-        h, k = self.center
-        original = h, k
+    def compute_circumference(self):
+        return 2 * sympy.pi * self.radius, sympy.N(2 * sympy.pi * self.radius, 6)
 
-        # Translation Matrix
-        T = np.array([[1, 0, h],
-                      [0, 1, k],
-                      [0, 0, 1]])
-
-        self.coeff_matrix = T.T @ self.coeff_matrix @ T
-        threshold = 1e-14
-        self.coeff_matrix = np.where(abs(self.coeff_matrix) < threshold, 0, self.coeff_matrix)
-
-        # Update state from the new matrix and record the new state in history
-        self.history.append(f"Affine transformation of center {original} to the origin")
-        self.update_from_matrix()
-        self.record_state()
-
-    def update_from_matrix(self):
-        # Similar to Parabola class
-        pass
-
-    def record_state(self):
-        # Similar to Parabola class
-        pass
-
-    def print_history(self):
-        # Similar to Parabola class
-        pass
+    def plot_circle(self, x_range=None, y_range=None):
+        plot_circle(self, x_range, y_range)
 
 
 class Ellipse(Conic):
