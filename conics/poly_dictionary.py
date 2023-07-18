@@ -36,9 +36,9 @@ def decompose_polynomial(formula: str):
             parts = term.split('*')
 
             if parts[0].replace('.', '').isdigit() or parts[0].replace('-', '').replace('.', '').isdigit():
-                coefficient = float(parts.pop(0))
+                coefficient = int(parts.pop(0))
             else:
-                coefficient = -1.0 if parts[0].startswith('-') else 1.0
+                coefficient = -1 if parts[0].startswith('-') else 1
                 if parts[0].startswith('-'):
                     parts[0] = parts[0][1:]
 
@@ -65,9 +65,9 @@ def decompose_polynomial(formula: str):
             variable = parts[0]
             if variable.startswith('-'):
                 variable = variable[1:]
-                coefficient = -1.0
+                coefficient = -1
             else:
-                coefficient = 1.0
+                coefficient = 1
             exponent = int(parts[1])
 
             exponents = [0, 0]
@@ -82,7 +82,7 @@ def decompose_polynomial(formula: str):
 
         elif term.isalpha() or (len(term) > 1 and term[1:].isalpha()):
             variable = term[-1]
-            coefficient = 1.0 if term[0] != '-' else -1.0
+            coefficient = 1 if term[0] != '-' else -1
             exponents = [0, 0]
 
             if variable == 'x':
@@ -95,7 +95,7 @@ def decompose_polynomial(formula: str):
                 poly_dict[tuple_key] = coefficient
 
         elif term.lstrip('+-').replace('.', '').isdigit():
-            coefficient = float(term)
+            coefficient = int(term)
             poly_dict[(0, 0)] = coefficient
 
     return poly_dict
