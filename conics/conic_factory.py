@@ -940,13 +940,14 @@ class Ellipse(Conic):
             sympy.init_printing()
 
             # Eccentricity
+            print("------")
             print("Eccentricity: \n")
             print("Approximation: ", sympy.N(self.eccentricity, 3))
             print("Exact: ", end="")
             display(self.eccentricity)
 
             # Foci
-            print("")
+            print("------")
             print("Foci: \n")
             for element in self.foci:
                 rounded_element = tuple(sympy.N(val, 3) for val in element)
@@ -955,7 +956,7 @@ class Ellipse(Conic):
                 display(element)
 
             # Directrices
-            print("")
+            print("------")
             print("Directrices: \n")
             for element in self.directrices:
                 # Get left and right sides of the equation
@@ -970,7 +971,7 @@ class Ellipse(Conic):
                 display(element)
 
             # Vertices
-            print("")
+            print("------")
             print("Vertices: \n")
             for sub_list in self.vertices:
                 for element in sub_list:
