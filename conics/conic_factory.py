@@ -497,7 +497,7 @@ class Parabola(Conic):
         else:
             return x
 
-    def rotate(self, display=False, rational=True, ):
+    def rotate(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
         """
         Rotate the parabola until orientation, "horizontal, positive" or "standard form".
 
@@ -545,7 +545,7 @@ class Parabola(Conic):
         if display:
             self.symbolic_rotation()
 
-    def translate_vertex(self, rational=False, display=False):
+    def translate_vertex(self, rational=False, display=False, threshold=1e-14, tolerance=0.001):
         """
         Translate the parabola so vertex is at the origin.
 
@@ -564,14 +564,9 @@ class Parabola(Conic):
                           [0, 0, 1]])
 
         self.coeff_matrix = T.T * self.coeff_matrix * T
-        threshold = sympy.Rational(1, 10 ** 14)
-        for i in range(3):
-            for j in range(3):
-                if abs(self.coeff_matrix[i, j]) < threshold:
-                    self.coeff_matrix[i, j] = 0
 
-        if rational:
-            self.coeff_matrix = self.coeff_matrix.applyfunc(sympy.nsimplify)
+        # if the absolute value of an element in coeff_matrix is less than threshold, we set it to 0
+        self._clean_coeff_matrix(threshold, tolerance, rational)
 
         # Update state from the new matrix and record the new state in history
         self.history.append(f"Affine transformation of vertex {original} to the origin")
