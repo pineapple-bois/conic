@@ -1,9 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib import patches
 import sympy
 
 # PARABOLAS
+
 
 def plot_parabola(conic, x_range=None, y_range=None):
     # Increase figure size
@@ -74,6 +76,7 @@ def plot_parabola(conic, x_range=None, y_range=None):
     plt.title(f"General Form:\n${str(conic)}$")
     plt.show()
 
+
 def parabola_standard(conic, x_range=None, y_range=None):
     plt.figure(figsize=(10, 8))  # Adjust the values as per your desired size
     if not conic.standard_form:
@@ -136,4 +139,99 @@ def plot_circle(conic, x_range=None, y_range=None):
     plt.title(f'Standard Form:\n${conic}$')
     plt.legend(loc='best')  # This will place the legend at the location that covers the least amount of data.
     plt.gca().set_aspect('equal')  # Ensure aspect ratio is equal
+    plt.show()
+
+
+# ELLIPSES
+
+
+def plot_ellipse(self, x_range=None, y_range=None):
+    """
+    Plot the ellipse with its center and semi-major axis.
+    """
+    # Increase figure size
+    plt.figure(figsize=(10, 8))  # Adjust the values as per your desired size
+
+    if not x_range:
+        x_range = [-10, 10]
+    if not y_range:
+        y_range = [-10, 10]
+
+    # Convert sympy expressions to lambdified expressions for plotting
+    x, y = sympy.symbols('x y')
+    lambda_axis = sympy.lambdify((x, y), self.semimajor_axis_line().lhs - self.semimajor_axis_line().rhs, 'numpy')
+
+    x_vals, y_vals = np.mgrid[x_range[0]:x_range[1]:200j, y_range[0]:y_range[1]:200j]  # grid of points
+
+    # Define the ellipse's equation from the coefficients
+    z = (self.A * x_vals ** 2 + self.B * x_vals * y_vals + self.C * y_vals ** 2
+         + self.D * x_vals + self.E * y_vals + self.F)
+
+    # Plot the ellipse
+    plt.contour(x_vals, y_vals, z, levels=[0], colors='r')
+
+    # Plot the center
+    plt.plot(self.centre[0], self.centre[1], 'go')
+
+    # Plot the semi-major axis
+    plt.contour(x_vals, y_vals, lambda_axis(x_vals, y_vals), levels=[0], colors='b',
+                linewidths=0.5, linestyles='dashed')
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.axhline(0, color='gray', linewidth=0.5)
+    plt.axvline(0, color='gray', linewidth=0.5)
+    plt.title(f"${self.__str__()}$")
+    plt.show()
+
+
+def plot_standard(self, x_range=None, y_range=None):
+    """
+    Plot the ellipse with its foci, directrices, and vertices.
+    """
+    # Define the plot
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    if not x_range:
+        x_range = [-10, 10]
+    if not y_range:
+        y_range = [-10, 10]
+
+    # Convert sympy expressions to lambdified expressions for plotting
+    x, y = sympy.symbols('x y')
+
+    x_vals, y_vals = np.mgrid[x_range[0]:x_range[1]:200j, y_range[0]:y_range[1]:200j]  # grid of points
+
+    # Define the ellipse's equation from the coefficients
+    z = (self.A * x_vals ** 2 + self.B * x_vals * y_vals + self.C * y_vals ** 2
+         + self.D * x_vals + self.E * y_vals + self.F)
+
+    # Plot the ellipse
+    ax.contour(x_vals, y_vals, z, levels=[0], colors='red')
+
+    # Plot the foci
+    for focus in self.foci:
+        ax.plot(focus[0], focus[1], 'go')
+
+    # Plot the directrices
+    for d in self.directrices:
+        ax.axvline(d.rhs, color='blue')  # d.rhs gives the right-hand side of the equation x = constant
+
+    # Plot the vertices
+    for v_set in self.vertices:
+        for v in v_set:
+            ax.plot(v[0], v[1], 'purple', marker='o')
+
+    ax.set_aspect('equal', adjustable='box')
+    plt.axhline(0, color='gray', linewidth=0.5)
+    plt.axvline(0, color='gray', linewidth=0.5)
+
+    # Define the patches for the legend
+    red_patch = patches.Patch(color='red', label='Ellipse')
+    green_patch = patches.Patch(color='green', label='Foci')
+    blue_patch = patches.Patch(color='blue', label='Directrices')
+    purple_patch = patches.Patch(color='purple', label='Vertices')
+
+    # Add legend
+    plt.legend(handles=[red_patch, green_patch, blue_patch, purple_patch])
+
+    plt.title(f"${self.__str__()}$")
     plt.show()

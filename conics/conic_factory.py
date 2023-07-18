@@ -121,21 +121,24 @@ class Conic:
         """
         Creates the matrix of coefficients,
         """
-        matrix = np.array([[self.A, self.B / 2, self.D / 2],
-                           [self.B / 2, self.C, self.E / 2],
-                           [self.D / 2, self.E / 2, self.F]])
+        matrix = sympy.Matrix([[self.A, sympy.Rational(self.B, 2), sympy.Rational(self.D, 2)],
+                               [sympy.Rational(self.B, 2), self.C, sympy.Rational(self.E, 2)],
+                               [sympy.Rational(self.D, 2), sympy.Rational(self.E, 2), self.F]])
         return matrix
 
     def create_quad_matrix(self):
         """
         Creates a 2x2 sub-matrix from the coefficient matrix
         """
-        matrix = np.array([[self.A, self.B / 2],
-                           [self.B / 2, self.C]])
+        matrix = sympy.Matrix([[self.A, sympy.Rational(self.B, 2)],
+                               [sympy.Rational(self.B, 2), self.C]])
         return matrix
 
     def print_matrices(self):
-        print(f"Matrix of coefficients:\n{self.coeff_matrix}\n\nQuadratic Matrix:\n{self.quad_matrix}")
+        print("Matrix of coefficients:")
+        display(self.coeff_matrix)
+        print("\nQuadratic Matrix:")
+        display(self.quad_matrix)
 
     def classify(self):
         """
@@ -143,14 +146,13 @@ class Conic:
         Uses the determinant of the 2x2 sub-matrix (delta) and the determinant of the 3x3 matrix (Delta).
         """
         # Calculate the determinant of the 2x2 quadratic-matrix
-        delta = np.linalg.det(self.quad_matrix)
+        delta = self.quad_matrix.det()
 
-        # TODO: Methods remain, useful for classification however, unused
         # Calculate trace of the 2x2 sub-matrix
-        tau = np.trace(self.quad_matrix)
+        tau = self.quad_matrix.trace()
 
         # Calculate the determinant of the 3x3 matrix. - DEGENERATE CONICS?
-        Delta = np.linalg.det(self.coeff_matrix)
+        Delta = self.coeff_matrix.det()
 
         if Delta == 0:
             return "Degenerate"
@@ -165,6 +167,75 @@ class Conic:
                 return "Ellipse"
         else:
             return "Unknown"
+
+    def _clean_coeff_matrix(self, threshold, tolerance, rational):
+        for i in range(3):
+            for j in range(3):
+                if abs(self.coeff_matrix[i, j]) < threshold:
+                    self.coeff_matrix[i, j] = 0
+                if rational:
+                    self.coeff_matrix[i, j] = sympy.nsimplify(self.coeff_matrix[i, j], tolerance=tolerance)
+
+    def _update_coefficients(self):
+        self.A = self.coeff_matrix[0, 0]
+        self.B = 2 * self.coeff_matrix[0, 1]
+        self.C = self.coeff_matrix[1, 1]
+        self.D = 2 * self.coeff_matrix[0, 2]
+        self.E = 2 * self.coeff_matrix[1, 2]
+        self.F = self.coeff_matrix[2, 2]
+
+    def _update_from_matrix(self):
+        # Update coefficients from the matrix
+        self._update_coefficients()
+
+        # Create the new coefficient dictionary
+        self.coefficients = {
+            (2, 0): self.A,
+            (1, 1): self.B,
+            (0, 2): self.C,
+            (1, 0): self.D,
+            (0, 1): self.E,
+            (0, 0): self.F
+        }
+
+        # Update the equation string
+        self.expression = self.save_as_sympy(return_expr=True)
+        self.equation = str(self.expression)
+
+    def symbolic_rotation(self):
+        # Define your rotation matrix R
+        theta = sympy.symbols('theta')
+        R = sympy.Matrix([
+            [sympy.cos(theta), sympy.sin(theta), 0],
+            [-sympy.sin(theta), sympy.cos(theta), 0],
+            [0, 0, 1]])
+
+        # Suppose your coeff_matrix is C (a 3x3 matrix)
+        A, B, C, D, E, F = sympy.symbols('A B C D E F')
+        M = sympy.Matrix([
+            [A, B / 2, D / 2],
+            [B / 2, C, E / 2],
+            [D / 2, E / 2, F]])
+
+        # Display the symbolic operation
+        display(Math('\\textbf{R}^T \cdot \\textbf{M} \cdot \\textbf{R}'))
+        display(Math(f'{sympy.latex(R.transpose())} \cdot {sympy.latex(M)} \cdot {sympy.latex(R)}'))
+
+    def symbolic_translation(self):
+        h, k = sympy.symbols('h k')
+        T = sympy.Matrix([[1, 0, h],
+                          [0, 1, k],
+                          [0, 0, 1]])
+
+        A, B, C, D, E, F = sympy.symbols('A B C D E F')
+        M = sympy.Matrix([
+            [A, B / 2, D / 2],
+            [B / 2, C, E / 2],
+            [D / 2, E / 2, F]])
+
+        # Display the symbolic operation
+        display(Math('\\textbf{T}^T \cdot \\textbf{M} \cdot \\textbf{T}'))
+        display(Math(f'{sympy.latex(T.transpose())} \cdot {sympy.latex(M)} \cdot {sympy.latex(T)}'))
 
     def _convert_to_sympy_expression(self, rational=False, force=True):
         """
@@ -228,6 +299,7 @@ class Parabola(Conic):
     def __init__(self, equation):
         super().__init__(equation)
         self.history = []
+        self.orientation_history = []
         self.standard_form = False
 
     @property
@@ -271,7 +343,7 @@ class Parabola(Conic):
               f"\nGeneral Form: {self}\n")
         self.print_matrices()
         print(f"\nOrientation: {self.get_orientation()}")
-        print(f"Axis of symmetry: {str(self.axis)}")
+        print(f"Axis of symmetry: {self.axis}")
         self.plot_parabola()
 
     def get_orientation(self):
@@ -296,6 +368,7 @@ class Parabola(Conic):
                 return "vertical", "positive"
             else:
                 return "vertical", "negative"
+
         elif self.A == 0 and self.C != 0:
             if self.C > 0:
                 if self.D > 0:
@@ -307,9 +380,11 @@ class Parabola(Conic):
                     return "horizontal", "positive"
                 else:  # when self.D =< 0
                     return "horizontal", "negative"
+
         elif self.A != 0 and self.C != 0:
-            theta = 0.5 * sympy.atan2(self.B, (self.A - self.C))
-            return "rotated", theta
+            theta = sympy.Rational(1, 2) * sympy.atan2(self.B, (self.A - self.C))
+
+            return "rotated", float(theta)
 
     def compute_axis(self):
         """
@@ -325,7 +400,7 @@ class Parabola(Conic):
         """
         if not self.orientation[0] == 'rotated':
             if self.orientation[0] == 'vertical':
-                axis = sympy.Rational(-self.D / (2 * self.A)).limit_denominator(1000000)
+                axis = sympy.Rational(-self.D / (2 * self.A)).limit_denominator(100000)
             else:
                 axis = sympy.Rational(-self.E / (2 * self.C)).limit_denominator(100000)
         else:
@@ -373,6 +448,46 @@ class Parabola(Conic):
 
         return h, k
 
+    def get_original_vertex(self, to_float=False, tolerance=0.001):
+        """
+        This method only applies to once rotated parabolas
+        :param: default rational number True
+        :return:
+        """
+        # Fetch the vertex of the rotated parabola
+        vertex_rotated = self.vertex
+
+        # Extract the original coefficients from the history (state before rotation)
+        original_coefficients = self.orientation_history[0]
+
+        # Use a dictionary comprehension to extract the original A, B, and C values
+        original_A = original_coefficients.get((2, 0), 0)
+        original_B = original_coefficients.get((1, 1), 0)
+        original_C = original_coefficients.get((0, 2), 0)
+
+        # Calculate theta using the original A, B, and C values
+        theta = sympy.Rational(1, 2) * sympy.atan2(original_B, (original_A - original_C))
+        # Correct for the rotation by subtracting pi/2
+        theta -= sympy.pi / 2
+        theta = sympy.nsimplify(theta, tolerance=tolerance)
+
+        # Unpack the rotated vertex coordinates
+        x_rotated, y_rotated = vertex_rotated
+
+        # Rotate the vertex coordinates back to the original coordinate system
+        x_vertex_expr = x_rotated * sympy.cos(theta) - y_rotated * sympy.sin(theta)
+        y_vertex_expr = x_rotated * sympy.sin(theta) + y_rotated * sympy.cos(theta)
+
+        # Calculate the rational representation with limited denominator size
+        x_vertex = sympy.nsimplify(x_vertex_expr, tolerance=tolerance)
+        y_vertex = sympy.nsimplify(y_vertex_expr, tolerance=tolerance)
+
+        if to_float:
+            x_vertex = float(x_vertex)
+            y_vertex = float(y_vertex)
+
+        return x_vertex, y_vertex
+
     def _rational_or_radical(self, x):
         """
         Convert x to a rational number if it is a float, otherwise leave it as it is.
@@ -382,7 +497,7 @@ class Parabola(Conic):
         else:
             return x
 
-    def rotate_parabola(self, rational=False, display=False):
+    def rotate(self, display=False, rational=True, ):
         """
         Rotate the parabola until orientation, "horizontal, positive" or "standard form".
 
@@ -397,6 +512,7 @@ class Parabola(Conic):
         """
         self.history.append(f"Equation: {str(self)}")
         orientation, rotation_angle = self.get_orientation()
+        self.orientation_history.append(self.coefficients)
 
         if orientation == "vertical":
             if rotation_angle == "positive":
@@ -408,62 +524,28 @@ class Parabola(Conic):
 
         if orientation == "rotated":
             epsilon = 1e-10
-            # We use a new variable here to avoid the issue
             rotated_angle = rotation_angle
             if abs(abs(rotated_angle) - sympy.pi / 4) > epsilon:  # Not close to 45 degrees
                 rotated_angle = sympy.pi / 2 - rotated_angle
             rotation_angle = rotated_angle
 
-        # Create Rotation Matrix
-        R = np.array([[sympy.cos(rotation_angle), sympy.sin(rotation_angle), 0],
-                      [-sympy.sin(rotation_angle), sympy.cos(rotation_angle), 0],
-                      [0, 0, 1]])
+        R = sympy.Matrix([[sympy.cos(rotation_angle), sympy.sin(rotation_angle), 0],
+                          [-sympy.sin(rotation_angle), sympy.cos(rotation_angle), 0],
+                          [0, 0, 1]])
 
-        # Rotate parabola
-        self.coeff_matrix = np.transpose(R) @ self.coeff_matrix @ R
-        threshold = 1e-14
-        self.coeff_matrix = np.where(abs(self.coeff_matrix) < threshold, 0, self.coeff_matrix)
+        self.coeff_matrix = R.transpose() * self.coeff_matrix * R
 
-        if rational:
-            for i in range(self.coeff_matrix.shape[0]):
-                for j in range(self.coeff_matrix.shape[1]):
-                    self.coeff_matrix[i, j] = sympy.Rational(self.coeff_matrix[i, j])
-                # Now all entries in coeff_matrix are SymPy Rationals
+        # if the absolute value of an element in coeff_matrix is less than threshold, we set it to 0
+        self._clean_coeff_matrix(threshold, tolerance, rational)
 
-        # Update state from the new matrix and record the new state in history
-        self.history.append(f"Performed rotation by {sympy.N(rotation_angle * 180/sympy.pi, 4)} degrees CCW")
+        self.history.append(f"Performed rotation by {sympy.N(rotation_angle * 180 / sympy.pi, 4)} degrees CCW")
         self._update_from_matrix()
         self.record_state()
 
         if display:
             self.symbolic_rotation()
 
-        # After rotating, if the parabola isn't oriented as 'horizontal, positive',
-        # recursively rotate again
-        orientation, rotation_angle = self.get_orientation()
-        if orientation == "vertical" or (orientation == "horizontal" and rotation_angle == "negative"):
-            self.rotate_parabola(rational)
-
-    def symbolic_rotation(self):
-        # Define your rotation matrix R
-        theta = sympy.symbols('theta')
-        R = sympy.Matrix([
-            [sympy.cos(theta), sympy.sin(theta), 0],
-            [-sympy.sin(theta), sympy.cos(theta), 0],
-            [0, 0, 1]])
-
-        # Suppose your coeff_matrix is C (a 3x3 matrix)
-        A, B, C, D, E, F = sympy.symbols('A B C D E F')
-        M = sympy.Matrix([
-            [A, B / 2, D / 2],
-            [B / 2, C, E / 2],
-            [D / 2, E / 2, F]])
-
-        # Display the symbolic operation
-        display(Math('\\textbf{R}^T \cdot \\textbf{M} \cdot \\textbf{R}'))
-        display(Math(f'{sympy.latex(R.transpose())} \cdot {sympy.latex(M)} \cdot {sympy.latex(R)}'))
-
-    def translate_origin(self, rational=False, display=False):
+    def translate_vertex(self, rational=False, display=False):
         """
         Translate the parabola so vertex is at the origin.
 
@@ -477,19 +559,19 @@ class Parabola(Conic):
         original = h, k
 
         # Translation Matrix
-        T = np.array([[1, 0, h],
-                      [0, 1, k],
-                      [0, 0, 1]])
+        T = sympy.Matrix([[1, 0, h],
+                          [0, 1, k],
+                          [0, 0, 1]])
 
-        self.coeff_matrix = T.T @ self.coeff_matrix @ T
-        threshold = 1e-14
-        self.coeff_matrix = np.where(abs(self.coeff_matrix) < threshold, 0, self.coeff_matrix)
+        self.coeff_matrix = T.T * self.coeff_matrix * T
+        threshold = sympy.Rational(1, 10 ** 14)
+        for i in range(3):
+            for j in range(3):
+                if abs(self.coeff_matrix[i, j]) < threshold:
+                    self.coeff_matrix[i, j] = 0
 
         if rational:
-            for i in range(self.coeff_matrix.shape[0]):
-                for j in range(self.coeff_matrix.shape[1]):
-                    self.coeff_matrix[i, j] = sympy.Rational(self.coeff_matrix[i, j])
-                # Now all entries in coeff_matrix are SymPy Rationals
+            self.coeff_matrix = self.coeff_matrix.applyfunc(sympy.nsimplify)
 
         # Update state from the new matrix and record the new state in history
         self.history.append(f"Affine transformation of vertex {original} to the origin")
@@ -503,53 +585,21 @@ class Parabola(Conic):
         if self.vertex == (0, 0) and self.orientation == ('horizontal', 'positive'):
             self.standard_form = True
 
-    def symbolic_translation(self):
-        h, k = sympy.symbols('h k')
-        T = sympy.Matrix([[1, 0, h],
-                          [0, 1, k],
-                          [0, 0, 1]])
-
-        A, B, C, D, E, F = sympy.symbols('A B C D E F')
-        M = sympy.Matrix([
-            [A, B / 2, D / 2],
-            [B / 2, C, E / 2],
-            [D / 2, E / 2, F]])
-
-        # Display the symbolic operation
-        display(Math('\\textbf{T}^T \cdot \\textbf{M} \cdot \\textbf{T}'))
-        display(Math(f'{sympy.latex(T.transpose())} \cdot {sympy.latex(M)} \cdot {sympy.latex(T)}'))
-
-    def _update_coefficients(self):
-        self.A = self.coeff_matrix[0, 0]
-        self.B = 2 * self.coeff_matrix[0, 1]  # Remember we stored B/2 in the matrix
-        self.C = self.coeff_matrix[1, 1]
-        self.D = 2 * self.coeff_matrix[0, 2]  # Remember we stored D/2 in the matrix
-        self.E = 2 * self.coeff_matrix[1, 2]  # Remember we stored E/2 in the matrix
-        self.F = self.coeff_matrix[2, 2]
-
-    def _update_from_matrix(self):
-        # Update coefficients from the matrix
-        self._update_coefficients()
-
-        # Create the new coefficient dictionary
-        self.coefficients = {
-            (2, 0): self.A,
-            (1, 1): self.B,
-            (0, 2): self.C,
-            (1, 0): self.D,
-            (0, 1): self.E,
-            (0, 0): self.F
-        }
-
-        # Update the equation string
-        self.expression = self.save_as_sympy(return_expr=True)
-        self.equation = str(self.expression)
+    def to_standard_form(self, rational=False, display=False):
+        """
+        Thus method sends an instance of parabola straight to standard form; y^2 = 4ax
+        :param rational: optional, default False
+        :param display: optional, default False
+        :return:
+        """
+        self.rotate(rational=rational, display=display)
+        self.translate_vertex(rational=rational, display=display)
+        self.print_history()
 
     def record_state(self):
         """
         This method records the current state of the parabola in the history of the object.
         """
-        # Store the current state in history
         self.history.append({
             'Coefficients': self.coefficients,
             'Matrix': self.coeff_matrix,
@@ -627,10 +677,306 @@ class Circle(Conic):
 class Ellipse(Conic):
     def __init__(self, equation):
         super().__init__(equation)
-        # Compute any properties unique to ellipses here
+        self.centre = self.get_centre()
+        self.standard_form = False
 
-    def draw(self):
-        pass  # Implement plotting for ellipse
+    @property
+    def orientation(self):
+        """
+        Return the orientation of the ellipse: 'horizontal', 'vertical' or 'rotated'.
+        """
+        # Calculate the angle in radians
+        theta = sympy.Rational(1, 2) * sympy.atan(sympy.Rational(self.B, (self.A - self.C)))
+
+        # Use sympy's equivalence checking for comparison
+        if self.B != 0:
+            return 'rotated', theta
+        else:
+            if self.A > self.C:
+                return 'vertical', 0
+            elif self.A < self.C:
+                return 'horizontal', 0
+
+    @property
+    def semimajor_axis(self):
+        if not self.standard_form:
+            raise ValueError("Semi-major axis can only be computed for ellipses in standard form")
+        a = self.A
+        return sympy.sqrt(1 / a)
+
+    @property
+    def semiminor_axis(self):
+        if not self.standard_form:
+            raise ValueError("Semi-minor axis can only be computed for ellipses in standard form")
+        b = self.C
+        return sympy.sqrt(1 / b)
+
+    @property
+    def eccentricity(self):
+        if not self.standard_form:
+            raise ValueError("Eccentricity can only be computed for ellipses in standard form")
+        # eccentricity e = sqrt(1 - (b/a)^2), a > b
+        a, b = self.semimajor_axis, self.semiminor_axis
+        e = sympy.sqrt(1 - (b/a)**2)
+        return e
+
+    @property
+    def vertices(self):
+        if not self.standard_form:
+            raise ValueError("Vertices can only be computed for ellipses in standard form")
+        # Vertices are on the semi-major axis, a distance of 'a' from the center
+        a, b = self.semimajor_axis, self.semiminor_axis
+        major_vertices = [(self.centre[0] - a, self.centre[1]), (self.centre[0] + a, self.centre[1])]
+        minor_vertices = [(self.centre[0], self.centre[1] - b), (self.centre[0], self.centre[1] + b)]
+        return major_vertices, minor_vertices
+
+    @property
+    def foci(self):
+        if not self.standard_form:
+            raise ValueError("Foci can only be computed for ellipses in standard form")
+        # Foci are on the semi-major axis, a distance of +/- 'ae' from the center
+        a, e = self.semimajor_axis, self.eccentricity
+        return [(self.centre[0] - a*e, self.centre[1]), (self.centre[0] + a*e, self.centre[1])]
+
+    @property
+    def directrices(self):
+        if not self.standard_form:
+            raise ValueError("Directrices can only be computed for ellipses in standard form")
+        # Directrices are lines parallel to the minor axis, a distance of +/- 'a/e' from the center
+        a, e = self.semimajor_axis, self.eccentricity
+        x = sympy.symbols('x')
+        return [sympy.Eq(x, (self.centre[0] - a / e)), sympy.Eq(x, (self.centre[0] + a / e))]
+
+    def get_info(self):
+        print(f"{self.__repr__()}\nType: {self.type}\nCoefficients: {self.coeff}"
+              f"\nGeneral Form: {self}\n")
+        self.print_matrices()
+        if self.orientation[0] == 'rotated':
+            angle_in_degrees = sympy.N(sympy.deg(self.orientation[1]), 5)
+            print(f"Orientation: {self.orientation[0], angle_in_degrees} degrees\nradians: {self.orientation[1]}\n")
+        else:
+            print(f"Orientation: {self.orientation[0]}\n")
+        print(f"Centre: {self.centre}")
+        print(f"Equation of line through centre & semi-major axis")
+        display(self.semimajor_axis_line())
+        self.plot_ellipse()
+
+    def semimajor_axis_line(self):
+        """
+        Return the equation of the line passing through the semi-major axis of the ellipse.
+        """
+        x, y = sympy.symbols('x y')
+
+        # Calculate the slope from the rotation angle
+        if self.orientation[0] == 'rotated':
+            m = sympy.tan(self.orientation[1])
+            # Calculate the y-intercept from the y-coordinate of the center
+            c = self.centre[1] - m * self.centre[0]
+            eqn = sympy.nsimplify(sympy.Eq(y, m * x + c), 0.0001)
+            simplified_eq = sympy.Eq(eqn.lhs, sympy.trigsimp(eqn.rhs))
+            return simplified_eq
+
+        elif self.orientation[0] == 'horizontal':
+            return sympy.Eq(y, self.centre[1])
+
+        else:  # vertical
+            return sympy.Eq(x, self.centre[0])
+
+    def get_centre(self):
+        """
+        The center of the ellipse is the point where the derivatives w.r.t x and y are zero.
+        It's a stationary point of the ellipse
+        :return: tuple(x_coordinate, y_coordinate)
+        """
+        # Define the symbols
+        x, y = sympy.symbols('x y')
+
+        # Define the system of equations
+        eq1 = sympy.Eq(2 * self.A * x + self.B * y + self.D, 0)
+        eq2 = sympy.Eq(self.B * x + 2 * self.C * y + self.E, 0)
+
+        # Solve the system
+        solution = sympy.solve((eq1, eq2), (x, y))
+
+        center_x = solution[x]
+        center_y = solution[y]
+
+        return center_x, center_y
+
+    def translate_origin(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
+        """
+        Translate the ellipse so centre is at the origin.
+
+        The translation operation is recorded in the object's history. After translation, if the
+        centre of the ellipse is at the origin and its orientation is "horizontal",
+        the ellipse is considered to be in its standard form.
+        """
+        self.history.append(f"Equation: {str(self)}")
+        h, k = self.centre[0], self.centre[1]
+        original = h, k
+
+        # Translation Matrix
+        T = sympy.Matrix([[1, 0, h],
+                          [0, 1, k],
+                          [0, 0, 1]])
+
+        self.coeff_matrix = T.T * self.coeff_matrix * T
+        self._clean_coeff_matrix(threshold, tolerance, rational)
+
+        # Update state from the new matrix and record the new state in history
+        self.history.append(f"Translation of centre, {original} to the origin")
+        self._update_from_matrix()
+        self.centre = self.get_centre()
+
+        # Update standard_form flag
+        if self.centre == (0, 0) and self.orientation[0] == 'horizontal':
+            self.standard_form = True
+            # Eradicate the constant term in coefficient matrix (Normalise the equation)
+            self.coeff_matrix = abs(1/self.F) * self.coeff_matrix
+            # Update coefficients
+            self._update_from_matrix()
+
+        # Write to history of the object
+        self.record_state()
+
+        if display:
+            self.symbolic_translation()
+
+    def rotate(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
+        """
+        Rotates the ellipse to a 'horizontal' or 'standard form' based on its current orientation.
+        If standard form, the coefficients are normalised into the form, x^2/a^2 + y^2/b^2 = 1
+
+        This method performs the rotation by creating a rotation matrix, determined by the orientation of the ellipse.
+        If the orientation is 'vertical', a 90-degree (pi/2 radians) rotation is applied.
+        If the orientation is 'rotated', the rotation angle is adjusted according to its sign:
+        - If it is negative, the absolute value of the angle is used.
+        - If it is positive, pi minus the angle is used.
+
+        Forms rotation matrix and updates the coefficient matrix of the ellipse.
+        Then, any coefficients in the updated matrix less than the provided threshold are set to zero.
+
+        If the `rational` argument is `True`,
+        the elements of the coefficient matrix are expressed as a rational number within the given tolerance.
+
+        If the `display` argument is `True`,
+        A symbolic representation of the rotation operation is displayed.
+
+        Parameters:
+        display (bool, optional): If True, displays the symbolic rotation operation. Defaults to False.
+        rational (bool, optional): If True, expresses the coefficient matrix elements as rational numbers. Defaults to True.
+        threshold (float, optional): Elements of the coefficient matrix less than this value are set to zero. Defaults to 1e-14.
+        tolerance (float, optional): Tolerance used when expressing coefficient matrix elements as rational numbers. Defaults to 0.001.
+        """
+        self.history.append(f"Equation: {str(self)}")
+        orientation, rotation_angle = self.orientation[0], self.orientation[1]
+
+        if orientation == "vertical":
+            rotation_angle = sympy.pi / 2  # 90
+
+        if orientation == "rotated":
+            if rotation_angle < 0:
+                rotation_angle = (abs(rotation_angle)).evalf()
+            else:
+                rotation_angle = (sympy.pi - rotation_angle).evalf()
+
+        R = sympy.Matrix([[sympy.cos(rotation_angle), sympy.sin(rotation_angle), 0],
+                          [-sympy.sin(rotation_angle), sympy.cos(rotation_angle), 0],
+                          [0, 0, 1]])
+
+        self.coeff_matrix = R.transpose() * self.coeff_matrix * R
+
+        self._clean_coeff_matrix(threshold, tolerance, rational)
+
+        self.history.append(f"Performed rotation by {round(float(sympy.deg(rotation_angle)), 4)} degrees CCW")
+        self._update_from_matrix()
+        self.centre = self.get_centre()
+
+        # Update standard_form flag
+        if self.centre == (0, 0) and self.orientation[0] == 'horizontal':
+            self.standard_form = True
+            # Eradicate the constant term in coefficient matrix (Normalise the equation)
+            self.coeff_matrix = abs(1/self.F) * self.coeff_matrix
+            # Update coefficients
+            self._update_from_matrix()
+
+        # Write to history of the object
+        self.record_state()
+
+        if display:
+            self.symbolic_rotation()
+
+    def record_state(self):
+        """
+        This method records the current state of the parabola in the history of the object.
+        """
+        self.history.append({
+            'Coefficients': self.coefficients,
+            'Matrix': self.coeff_matrix,
+            'Equation': str(self),
+            'Orientation': self.orientation,
+            'Centre': self.centre,
+            'Standard Form?': self.standard_form
+            })
+
+    def print_history(self):
+        """
+        This method prints the history of the transformations applied to the ellipse
+        """
+        print(f"Original input:\n{self.original_input}\n")
+        for item in self.history:
+            if isinstance(item, str):
+                print(f"----------\n{item}\n")
+            elif isinstance(item, dict):
+                for key, value in item.items():
+                    print(f"{key} :\n{value}\n")
+
+    def plot_ellipse(self, x_range=None, y_range=None):
+        plot_ellipse(self, x_range, y_range)
+
+    def plot_standard(self, x_range=None, y_range=None):
+        if self.standard_form:
+            plot_standard(self, x_range, y_range)
+            sympy.init_printing()
+
+            # Eccentricity
+            print("Eccentricity: ")
+            print("Approximation: ", sympy.N(self.eccentricity, 3))
+            print("Exact: ", end="")
+            display(self.eccentricity)
+
+            # Foci
+            print("\nFoci: ")
+            for element in self.foci:
+                rounded_element = tuple(sympy.N(val, 3) for val in element)
+                print("Approximation: ", rounded_element)
+                print("Exact: ", end="")
+                display(element)
+
+            # Directrices
+            print("\nDirectrices: ")
+            for element in self.directrices:
+                # Get left and right sides of the equation
+                lhs = element.lhs
+                rhs = element.rhs
+                # Approximate the right side
+                rounded_rhs = sympy.N(rhs, 3)
+                # Print the approximation
+                print(f"Approximation: {lhs} = {rounded_rhs}")
+                # Display the exact value
+                print("Exact: ", end="")
+                display(element)
+
+            # Vertices
+            print("\nVertices: ")
+            for sub_list in self.vertices:
+                for element in sub_list:
+                    rounded_element = tuple(sympy.N(val, 3) for val in element)
+                    print("Approximation: ", rounded_element)
+                    print("Exact: ", end="")
+                    display(element)
+        else:
+            print("Ellipse not in standard form")
 
 
 class Hyperbola(Conic):
@@ -638,8 +984,6 @@ class Hyperbola(Conic):
         super().__init__(equation)
         # Compute any properties unique to hyperbolas here
 
-    def draw(self):
-        pass  # Implement plotting for hyperbola
 
 
 
