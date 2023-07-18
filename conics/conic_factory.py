@@ -344,7 +344,7 @@ class Parabola(Conic):
         self.print_matrices()
         print(f"\nOrientation: {self.get_orientation()}")
         print(f"Axis of symmetry: {self.axis}")
-        self.plot_parabola()
+        self.plot()
 
     def get_orientation(self):
         """
@@ -590,6 +590,7 @@ class Parabola(Conic):
         self.rotate(rational=rational, display=display)
         self.translate_vertex(rational=rational, display=display)
         self.print_history()
+        self.plot_standard()
 
     def record_state(self):
         """
@@ -615,7 +616,7 @@ class Parabola(Conic):
                 for key, value in item.items():
                     print(f"{key} :\n{value}\n")
 
-    def plot_parabola(self, x_range=None, y_range=None):
+    def plot(self, x_range=None, y_range=None):
         plot_parabola(self, x_range, y_range)
 
     def plot_standard(self, x_range=None, y_range=None):
@@ -649,7 +650,7 @@ class Circle(Conic):
               f"Area: {self.area[0]}\napprox {self.area[1]} sq. units"
               f"\n\nCircumference: {self.circumference[0]}\napprox {self.circumference[1]} units\n")
         self.print_matrices()
-        self.plot_circle(x_range, y_range)
+        self.plot(x_range, y_range)
 
     def compute_centre(self):
         """Compute and return the center of the circle."""
@@ -665,7 +666,7 @@ class Circle(Conic):
     def compute_circumference(self):
         return 2 * sympy.pi * self.radius, sympy.N(2 * sympy.pi * self.radius, 6)
 
-    def plot_circle(self, x_range=None, y_range=None):
+    def plot(self, x_range=None, y_range=None):
         plot_circle(self, x_range, y_range)
 
 
@@ -754,7 +755,7 @@ class Ellipse(Conic):
         print(f"Centre: {self.centre}")
         print(f"Equation of line through centre & semi-major axis")
         display(self.semimajor_axis_line())
-        self.plot_ellipse()
+        self.plot()
 
     def semimajor_axis_line(self):
         """
@@ -926,7 +927,7 @@ class Ellipse(Conic):
                 for key, value in item.items():
                     print(f"{key} :\n{value}\n")
 
-    def plot_ellipse(self, x_range=None, y_range=None):
+    def plot(self, x_range=None, y_range=None):
         plot_ellipse(self, x_range, y_range)
 
     def plot_standard(self, x_range=None, y_range=None):
