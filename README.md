@@ -57,24 +57,26 @@ If the conic is [non-degenerate](https://en.wikipedia.org/wiki/Degenerate_conic)
 - - if $A=C$ and $B=0$, the equation represents a circle, a special case of an ellipse.
 - if $B^2-4 A C=0$, the equation represents a parabola.
 - if $B^2-4 A C>0$, the equation represents a hyperbola.
-- if $\tau=A+C=0$, the equation represents a rectangular hyperbola.
+- - if $\tau=A+C=0$, the equation represents a rectangular hyperbola.
 
 ----
 
 ### Input Parsing and Processing: 
 `Conic` takes a string representation of a polynomial *expression*. Equalities will not be parsed. 
 
-For example, 'x^2 + y^2 -1' should be input for $x^2+y^2=1$ and 'x^2' for $y=x^2$. 
+For example; 
 
-Initial parsing relies on the [SymPy](https://www.sympy.org/en/index.html) library to eliminate fractions and multiply the equation by the LCM thus reducing it to the general form of a conic section with integer coefficients.
+The equation $x^2+y^2=1$ should be input as 'x^2 + y^2 -1'
+
+The equation $y=x^2$ should be input as 'x^2'
+
+Parsing relies on the [SymPy](https://www.sympy.org/en/index.html) library to eliminate fractions and multiply the equation by the LCM thus reducing it to the general form of a conic section with integer coefficients.
 
 The `poly_dictionary` program then decomposes the equation into a dictionary of the form; {(degree of x, degree of y): coefficient, ...} 
 
 ----
 
-### Example
-
-How to create and classify a conic section. 
+### How to create and classify a conic section. 
 
 ```python
 mystery_conic = "x^2/4 + x*y/3 + y^2/9 -2*x + 3*y -1"
@@ -92,7 +94,7 @@ The input equation represented a parabola and the output dictionary gives the co
 
 ----
 
-#### Common methods
+### Common methods
 
 Once a conic object has been instantiated, `get_info()` is the first method to call to give an overview of the characteristics along with `plot(x_range(min, max), y_range(min, max))` 
 
@@ -124,7 +126,7 @@ Below is a parabola transformed to standard form
 
 ### Notebooks
 
-Tutorials demonstrating the methods available to each type of conic section;
+Tutorials demonstrating the methods available to each type of conic section are linked below;
 
 #### [Parabolas](Notebooks/Parabolas.ipynb)
 
@@ -162,7 +164,7 @@ pip install .
 
 ### Further Development
 
-##### Code requires a  major refactor redefining `rotate` and `translate` in the parent class whilst abstracting away the subtle differences in the child classes
+##### The code requires a  major refactor redefining `rotate` and `translate` in the parent class. Subtle differences will be abstract methods in the child classes
 
 - Basic Hyperbola methods now implemented ✅
 
