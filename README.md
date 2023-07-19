@@ -150,8 +150,10 @@ pip install -r requirements.txt
 
 - The Hyperbola methods are yet to be written. A hyperbola can be instantiated but will only have access to the methods of `Conic`
 - Adapting `poly_dictionary` to accept radical coefficients 
-- Adding a parameters to the transformation methods to perform arbitrary translation and rotation in $\mathbb{E}^2$
+- Adding additional parameters to the transformation methods to perform arbitrary translation and rotation in $\mathbb{E}^2$
 - Allowing scaling and dilation
 - Writing extensive instruction and documentation
+- Eliminating all floating-point error accumulation. Currently, the rotation is performed using the floating point rotation angle in radians albeit to a relatively high precision.
+- Two conic objects will be allowed to 'interact' (eventually)
 
 ----
