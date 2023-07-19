@@ -543,6 +543,7 @@ class Parabola(Conic):
         self.record_state()
 
         if display:
+            print("We form a rotation matrix R:")
             self.symbolic_rotation()
 
     def translate_vertex(self, rational=False, display=False, threshold=1e-14, tolerance=0.001):
@@ -574,6 +575,7 @@ class Parabola(Conic):
         self.record_state()
 
         if display:
+            print("We form a translation matrix T where (h, k) are the coordinates (x, y) of the vertex")
             self.symbolic_translation()
 
         # Update standard_form flag
@@ -836,6 +838,7 @@ class Ellipse(Conic):
         self.record_state()
 
         if display:
+            print("We form a translation matrix T where (h, k) are the coordinates (x, y) of the centre")
             self.symbolic_translation()
 
     def rotate(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
@@ -900,6 +903,7 @@ class Ellipse(Conic):
         self.record_state()
 
         if display:
+            print("We form a rotation matrix R;")
             self.symbolic_rotation()
 
     def record_state(self):
