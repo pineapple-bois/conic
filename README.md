@@ -130,7 +130,7 @@ Tutorials demonstrating the methods available to each type of conic section;
 
 #### [Ellipse](Notebooks/Ellipse.ipynb)
 
-#### Hyperbolas (work in progress)
+#### [Hyperbolas](Notebooks/Hyperbolas.ipynb)
 
 ----
 
@@ -160,7 +160,12 @@ pip install .
 
 ### Further Development
 
-- The Hyperbola methods are yet to be written. A hyperbola can be instantiated but will only have access to the methods of `Conic`
+##### Code requires a  major refactor redefining `rotate` and `translate` in the parent class whilst abstracting away the subtle differences in the child classes
+
+- Basic Hyperbola methods now implemented ✅
+
+Next
+
 - Adapting `poly_dictionary` to accept radical coefficients 
 - Adding additional parameters to the transformation methods to perform arbitrary translation and rotation in $\mathbb{E}^2$
 - Allowing scaling and dilation

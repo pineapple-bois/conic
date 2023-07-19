@@ -49,7 +49,7 @@ class Conic:
             return Ellipse(equation)
         elif conic_type == "Parabola":
             return Parabola(equation)
-        elif conic_type == "Hyperbola":
+        elif conic_type == "Hyperbola" or conic_type == "Rectangular Hyperbola":
             return Hyperbola(equation)
         else:
             raise ValueError('Cannot instantiate this type of the conic section')
@@ -159,7 +159,10 @@ class Conic:
         elif delta == 0:
             return "Parabola"
         elif delta < 0:
-            return "Hyperbola"
+            if tau == 0:
+                return "Rectangular Hyperbola"
+            else:
+                return "Hyperbola"
         elif delta > 0:
             if self.A == self.C and self.B == 0:
                 return "Circle"
@@ -298,7 +301,6 @@ class Parabola(Conic):
     """
     def __init__(self, equation):
         super().__init__(equation)
-        self.history = []
         self.orientation_history = []
         self.standard_form = False
 
@@ -986,8 +988,173 @@ class Ellipse(Conic):
 class Hyperbola(Conic):
     def __init__(self, equation):
         super().__init__(equation)
-        # Compute any properties unique to hyperbolas here
+        self.centre = self.get_centre()
+        self.standard_form = False
 
+    @property
+    def orientation(self):
+        """
+        Return the orientation of the hyperbola: 'horizontal', 'vertical' or 'rotated'.
+        """
+        # Calculate the angle in radians
+        theta = sympy.Rational(1, 2) * sympy.atan(sympy.Rational(self.B, (self.A - self.C)))
 
+        # Use sympy's equivalence checking for comparison
+        if self.B != 0:
+            return 'Rotated', theta
+        else:
+            if self.A > self.C:
+                return 'Horizontal', 0
+            elif self.A < self.C:
+                return 'Vertical', 0
+
+    @property
+    def semi_transverse_axis(self):
+        """To be implemented: return the length of the semi-transverse axis"""
+        pass
+
+    @property
+    def semi_conjugate_axis(self):
+        """To be implemented: return the length of the semi-conjugate axis"""
+        pass
+
+    @property
+    def eccentricity(self):
+        """To be implemented: return the eccentricity of the hyperbola"""
+        pass
+
+    @property
+    def vertices(self):
+        """To be implemented: return the vertices of the hyperbola"""
+        pass
+
+    @property
+    def foci(self):
+        """To be implemented: return the foci of the hyperbola"""
+        pass
+
+    @property
+    def directrices(self):
+        """To be implemented: return the directrices of the hyperbola"""
+        pass
+
+    @property
+    def asymptotes(self):
+        """To be implemented: return the equations of the asymptotes of the hyperbola"""
+        pass
+
+    def get_info(self):
+        print(f"{self.__repr__()}\nType: {self.type}\nCoefficients: {self.coeff}"
+              f"\nGeneral Form: {self}\n")
+        self.print_matrices()
+        print(f"Centre: {self.centre}")
+        if self.orientation[0] == 'rotated':
+            angle_in_degrees = sympy.N(sympy.deg(self.orientation[1]), 5)
+            print(f"Orientation: {self.orientation[0]}, {angle_in_degrees} degrees\nradians: {self.orientation[1]}\n")
+        else:
+            print(f"Orientation: {self.orientation[0]}\n")
+        print(f"Equation of transverse axis")
+        display(self.transverse_axis_line())
+        self.plot()
+
+    def get_centre(self):
+        """
+        The center of the hyperbola is the point where the derivatives w.r.t x and y are zero.
+        It's a stationary point of the hyperbola
+        :return: tuple(x_coordinate, y_coordinate)
+        """
+        # Define the symbols
+        x, y = sympy.symbols('x y')
+
+        # Define the system of equations
+
+        # eq1: partial derivative w.r.t x
+        eq1 = sympy.Eq(2 * self.A * x + self.B * y + self.D, 0)
+        # eq2: partial derivative w.r.t y
+        eq2 = sympy.Eq(self.B * x + 2 * self.C * y + self.E, 0)
+
+        # Solve the system
+        solution = sympy.solve((eq1, eq2), (x, y))
+
+        center_x = solution[x]
+        center_y = solution[y]
+
+        return center_x, center_y
+
+    def transverse_axis_line(self):
+        """
+        Return the equation of the line passing through the transverse axis of the hyperbola.
+        """
+        x, y = sympy.symbols('x y')
+
+        # Calculate the slope from the rotation angle
+        if self.orientation[0] == 'Rotated':
+            m = sympy.tan(self.orientation[1])
+            # Calculate the y-intercept from the y-coordinate of the center
+            c = self.centre[1] - m * self.centre[0]
+            eqn = sympy.nsimplify(sympy.Eq(y, m * x + c), 0.0001)
+            simplified_eq = sympy.Eq(eqn.lhs, sympy.trigsimp(eqn.rhs))
+            return simplified_eq
+
+        elif self.orientation[0] == 'Horizontal':
+            return sympy.Eq(y, self.centre[1])
+        else:  # Vertical
+            return sympy.Eq(x, self.centre[0])
+
+    def translate_origin(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
+        """To be implemented: translate the hyperbola to the origin"""
+        pass
+
+    def rotate(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
+        """To be implemented: rotate the hyperbola to the standard position"""
+        pass
+
+    def record_state(self):
+        """To be implemented: record the current state of the hyperbola"""
+        pass
+
+    def print_history(self):
+        """To be implemented: print the history of the transformations applied to the hyperbola"""
+        pass
+
+    def plot(self, x_range=None, y_range=None):
+        """
+        Method to plot an instance of a hyperbola along with its centre and transverse axis line.
+        """
+        plt.figure(figsize=(10, 8))
+
+        # Default ranges
+        if x_range is None:
+            x_range = (-10, 10)
+        if y_range is None:
+            y_range = (-10, 10)
+
+        x = np.linspace(*x_range, 400)
+        y = np.linspace(*y_range, 400)
+        x, y = np.meshgrid(x, y)
+
+        # Plot the hyperbola
+        plt.contour(x, y, (self.A * x ** 2 + self.B * x * y + self.C * y ** 2
+                           + self.D * x + self.E * y + self.F), [1], colors='r')
+
+        # Plot the centre
+        plt.plot(*self.centre, 'go')
+
+        # Plot the transverse axis line
+        if self.orientation[0] == 'Rotated':
+            transverse_axis_line = self.transverse_axis_line()
+            x_line = np.linspace(*x_range, 100)
+            y_line = sympy.lambdify(sympy.symbols('x'), transverse_axis_line.rhs, 'numpy')(x_line)
+            plt.plot(x_line, y_line, 'b--')
+        elif self.orientation[0] == 'Horizontal':
+            plt.axhline(self.centre[1], color='b', linestyle='--')
+        else:  # Vertical
+            plt.axvline(self.centre[0], color='b', linestyle='--')
+
+        plt.gca().set_aspect('equal', adjustable='box')
+        plt.axhline(0, color='gray', linewidth=0.5)
+        plt.axvline(0, color='gray', linewidth=0.5)
+        plt.title(f"${self.__str__()}$")
+        plt.show()
 
 
