@@ -122,7 +122,7 @@ Below is a parabola transformed to standard form
 
 ### Notebooks
 
-Tutorials of the functionality and methods available to each type of conic section are explored in the below notebooks;
+Tutorials demonstrating the methods available to each type of conic section;
 
 #### [Parabolas](Notebooks/Parabolas.ipynb)
 
@@ -130,22 +130,30 @@ Tutorials of the functionality and methods available to each type of conic secti
 
 #### [Ellipse](Notebooks/Ellipse.ipynb)
 
-#### Hyperbolae (work in progress)
+#### Hyperbolas (work in progress)
 
 ----
 
-### Dependencies
+### Installation
 
-This project depends on the following Python libraries:
+Follow these steps to install the `Conics` package:
 
-`numpy`
-`matplotlib`
-`sympy`
-`IPython`
+Clone the repository:
 
-Ensure you have them installed in your environment. If not, you can install the required dependencies from the requirements.txt file:
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/pineapple-bois/conic.git
+```
+
+Navigate to the cloned repository:
+
+```bash
+cd conic
+```
+
+Install the package
+
+```bash
+pip install .
 ```
 
 ----
@@ -156,6 +164,7 @@ pip install -r requirements.txt
 - Adapting `poly_dictionary` to accept radical coefficients 
 - Adding additional parameters to the transformation methods to perform arbitrary translation and rotation in $\mathbb{E}^2$
 - Allowing scaling and dilation
+- Extensive testing is required. I plan to use `unittest`
 - Writing extensive instruction and documentation
 - Eliminating all floating-point error accumulation. Currently, the rotation is performed using the floating point rotation angle in radians albeit to a relatively high precision.
 - Two conic objects will be allowed to 'interact' (eventually)
