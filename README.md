@@ -114,6 +114,10 @@ Conic sections can be rotated and translated within the $(x, y)$-plane. Should a
 
 The aim of the transformation is to render the conic to 'standard form' where further attributes can be calculated. Directly calling these attributes is disallowed for a conic not in standard form. The user is directed to first perform a transformation.
 
+Below is a parabola transformed to standard form
+
+![img](Images/Standard_parabola.png)
+
 ----
 
 ### Notebooks
