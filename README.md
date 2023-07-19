@@ -116,7 +116,7 @@ The aim of the transformation is to render the conic to 'standard form' where fu
 
 Below is a parabola transformed to standard form
 
-![img](Images/Standard_parabola.png)
+![img](Images/parabola_standard.png)
 
 ----
 
