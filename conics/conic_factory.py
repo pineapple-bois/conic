@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import sympy
+from abc import abstractmethod
 from fractions import Fraction
 from IPython.display import Math, display
 from conics.poly_dictionary import decompose_polynomial
@@ -68,6 +69,21 @@ class Conic:
         equation_no_frac = equation_str * lcm_value
 
         return equation_no_frac
+
+    @abstractmethod
+    def _get_rotation_angle(self):
+        """Calculate and return the rotation angle for the conic section."""
+        pass
+
+    @abstractmethod
+    def _get_translation_point(self):
+        """Translation point will be the vertex for Parabolas and centre for ellipse/hyperbolas"""
+        pass
+
+    @abstractmethod
+    def _standard_form_flag(self):
+        """Updates the standard form flag in the parent class"""
+        pass
 
     @property
     def coeff(self):
@@ -205,7 +221,71 @@ class Conic:
         self.expression = self.save_as_sympy(return_expr=True)
         self.equation = str(self.expression)
 
-    def symbolic_rotation(self):
+    def rotate(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
+        """
+        This method uses a rotation matrix to rotate the conic section.
+        The rotation angle is determined using an abstract method unique within each subclass
+
+        The rotation operation is recorded in the object's history.
+        """
+        self.history.append(f"Equation: {str(self)}")
+        if self.type == 'Parabola':
+            self.orientation_history.append(self.coefficients)
+
+        rotation_angle = self._get_rotation_angle()
+
+        R = sympy.Matrix([[sympy.cos(rotation_angle), sympy.sin(rotation_angle), 0],
+                          [-sympy.sin(rotation_angle), sympy.cos(rotation_angle), 0],
+                          [0, 0, 1]])
+
+        self.coeff_matrix = R.transpose() * self.coeff_matrix * R
+
+        # if the absolute value of an element in coeff_matrix is less than threshold, we set it to 0
+        self._clean_coeff_matrix(threshold, tolerance, rational)
+
+        self.history.append(f"Performed rotation by {round(float(sympy.deg(rotation_angle)), 4)} degrees CCW")
+        self._update_from_matrix()
+        self._standard_form_flag()
+
+        # Update History
+        self.record_state()
+
+        if display:
+            self._symbolic_rotation()
+
+    def translate(self, rational=False, display=False, threshold=1e-14, tolerance=0.001):
+        """
+        Translates the vertex/centre of the conic to the origin.
+
+        The translation operation is recorded in the object's history. After translation, if the
+        vertex of the parabola is at the origin and its orientation is "horizontal, positive",
+        the parabola is considered to be in its standard form.
+        """
+        h, k, original = self._get_translation_point()
+
+        # Translation Matrix
+        T = sympy.Matrix([[1, 0, h],
+                          [0, 1, k],
+                          [0, 0, 1]])
+
+        self.coeff_matrix = T.T * self.coeff_matrix * T
+
+        # if the absolute value of an element in coeff_matrix is less than threshold, we set it to 0
+        self._clean_coeff_matrix(threshold, tolerance, rational)
+
+        # Update state from the new matrix and record the new state in history
+        point = 'vertex' if self.type == "Parabola" else 'centre'
+        self.history.append(f"Transformation of {point} {original} to the origin")
+        self._update_from_matrix()
+        self._standard_form_flag()
+
+        # Update history
+        self.record_state()
+
+        if display:
+            self._symbolic_translation()
+
+    def _symbolic_rotation(self):
         # Define your rotation matrix R
         theta = sympy.symbols('theta')
         R = sympy.Matrix([
@@ -221,10 +301,12 @@ class Conic:
             [D / 2, E / 2, F]])
 
         # Display the symbolic operation
+        print("We form a rotation matrix R:")
         display(Math('\\textbf{R}^T \cdot \\textbf{M} \cdot \\textbf{R}'))
+        print("Such that,")
         display(Math(f'{sympy.latex(R.transpose())} \cdot {sympy.latex(M)} \cdot {sympy.latex(R)}'))
 
-    def symbolic_translation(self):
+    def _symbolic_translation(self):
         h, k = sympy.symbols('h k')
         T = sympy.Matrix([[1, 0, h],
                           [0, 1, k],
@@ -237,7 +319,10 @@ class Conic:
             [D / 2, E / 2, F]])
 
         # Display the symbolic operation
+        point = 'vertex' if self.type == "Parabola" else 'centre'
+        print(f"We form a translation matrix T where (h, k) are the coordinates (x, y) of the {point}")
         display(Math('\\textbf{T}^T \cdot \\textbf{M} \cdot \\textbf{T}'))
+        print("Such that")
         display(Math(f'{sympy.latex(T.transpose())} \cdot {sympy.latex(M)} \cdot {sympy.latex(T)}'))
 
     def _convert_to_sympy_expression(self, rational=False, force=True):
@@ -259,13 +344,6 @@ class Conic:
         self.expression = sympy.Poly(polynomial, (x, y))
 
         return self.expression
-
-    def display(self):
-        """
-        Displays the sympy expression of the polynomial using IPython's display system.
-        """
-        self._convert_to_sympy_expression()
-        display(self.expression.as_expr())
 
     def save_as_sympy(self, rational=False, return_expr=False):
         """
@@ -354,16 +432,6 @@ class Parabola(Conic):
 
         The orientation is computed based on the coefficients of the parabola equation.
         If the parabola is rotated, the method also returns the angle of rotation in radians.
-
-        Returns
-        -------
-        str, str or float
-            If parabola is vertical or horizontal, returns a tuple of two strings:
-            the first string represents the orientation ('vertical' or 'horizontal'),
-            the second string indicates the direction ('positive' or 'negative').
-
-            If parabola is rotated, returns a tuple where the first element is 'rotated',
-            and the second element is the angle of rotation in radians.
         """
         if self.A != 0 and self.C == 0:
             if self.A > 0:
@@ -490,31 +558,8 @@ class Parabola(Conic):
 
         return x_vertex, y_vertex
 
-    def _rational_or_radical(self, x):
-        """
-        Convert x to a rational number if it is a float, otherwise leave it as it is.
-        """
-        if isinstance(x, (float, int, sympy.Float)):
-            return sympy.Rational(x).limit_denominator(100000)
-        else:
-            return x
-
-    def rotate(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
-        """
-        Rotate the parabola until orientation, "horizontal, positive" or "standard form".
-
-        This method uses a rotation matrix to rotate the parabola. The rotation angle is
-        determined based on the parabola's orientation.
-
-        This function is recursive: if the resulting parabola is not a "horizontal, positive"
-        one after rotation, this function will be called again until the desired orientation
-        is achieved.
-
-        The rotation operation is recorded in the object's history.
-        """
-        self.history.append(f"Equation: {str(self)}")
+    def _get_rotation_angle(self):
         orientation, rotation_angle = self.get_orientation()
-        self.orientation_history.append(self.coefficients)
 
         if orientation == "vertical":
             if rotation_angle == "positive":
@@ -531,70 +576,26 @@ class Parabola(Conic):
                 rotated_angle = sympy.pi / 2 - rotated_angle
             rotation_angle = rotated_angle
 
-        R = sympy.Matrix([[sympy.cos(rotation_angle), sympy.sin(rotation_angle), 0],
-                          [-sympy.sin(rotation_angle), sympy.cos(rotation_angle), 0],
-                          [0, 0, 1]])
+        return rotation_angle
 
-        self.coeff_matrix = R.transpose() * self.coeff_matrix * R
-
-        # if the absolute value of an element in coeff_matrix is less than threshold, we set it to 0
-        self._clean_coeff_matrix(threshold, tolerance, rational)
-
-        self.history.append(f"Performed rotation by {sympy.N(rotation_angle * 180 / sympy.pi, 4)} degrees CCW")
-        self._update_from_matrix()
-        self.record_state()
-
-        if display:
-            print("We form a rotation matrix R:")
-            self.symbolic_rotation()
-
-    def translate_vertex(self, rational=False, display=False, threshold=1e-14, tolerance=0.001):
-        """
-        Translate the parabola so vertex is at the origin.
-
-        This method uses an affine transformation.
-
-        The translation operation is recorded in the object's history. After translation, if the
-        vertex of the parabola is at the origin and its orientation is "horizontal, positive",
-        the parabola is considered to be in its standard form.
-        """
+    def _get_translation_point(self):
         h, k = self.vertex[0], self.vertex[1]
         original = h, k
+        return h, k, original
 
-        # Translation Matrix
-        T = sympy.Matrix([[1, 0, h],
-                          [0, 1, k],
-                          [0, 0, 1]])
-
-        self.coeff_matrix = T.T * self.coeff_matrix * T
-
-        # if the absolute value of an element in coeff_matrix is less than threshold, we set it to 0
-        self._clean_coeff_matrix(threshold, tolerance, rational)
-
-        # Update state from the new matrix and record the new state in history
-        self.history.append(f"Affine transformation of vertex {original} to the origin")
-        self._update_from_matrix()
-        self.record_state()
-
-        if display:
-            print("We form a translation matrix T where (h, k) are the coordinates (x, y) of the vertex")
-            self.symbolic_translation()
-
+    def _standard_form_flag(self):
         # Update standard_form flag
         if self.vertex == (0, 0) and self.orientation == ('horizontal', 'positive'):
             self.standard_form = True
 
-    def to_standard_form(self, rational=False, display=False):
+    def _rational_or_radical(self, x):
         """
-        Thus method sends an instance of parabola straight to standard form; y^2 = 4ax
-        :param rational: optional, default False
-        :param display: optional, default False
-        :return:
+        Convert x to a rational number if it is a float, otherwise leave it as it is.
         """
-        self.rotate(rational=rational, display=display)
-        self.translate_vertex(rational=rational, display=display)
-        self.print_history()
-        self.plot_standard()
+        if isinstance(x, (float, int, sympy.Float)):
+            return sympy.Rational(x).limit_denominator(100000)
+        else:
+            return x
 
     def record_state(self):
         """
@@ -605,7 +606,8 @@ class Parabola(Conic):
             'Matrix': self.coeff_matrix,
             'Equation': str(self),
             'Orientation': self.orientation,
-            'Vertex': self.vertex
+            'Vertex': self.vertex,
+            'Standard Form?': self.standard_form
         })
 
     def print_history(self):
@@ -670,6 +672,15 @@ class Circle(Conic):
     def compute_circumference(self):
         return 2 * sympy.pi * self.radius, sympy.N(2 * sympy.pi * self.radius, 6)
 
+    def rotate(self, *args, **kwargs):
+        print("Rotation operation is not applicable for circles.")
+
+    def _get_translation_point(self):
+        """Abstract method of translate"""
+        h, k = self.centre[0], self.centre[1]
+        original = h, k
+        return h, k, original
+
     def plot(self, x_range=None, y_range=None):
         plot_circle(self, x_range, y_range)
 
@@ -677,8 +688,11 @@ class Circle(Conic):
 class Ellipse(Conic):
     def __init__(self, equation):
         super().__init__(equation)
-        self.centre = self.get_centre()
         self.standard_form = False
+
+    @property
+    def centre(self):
+        return self.get_centre()
 
     @property
     def orientation(self):
@@ -803,73 +817,8 @@ class Ellipse(Conic):
 
         return center_x, center_y
 
-    def translate_origin(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
-        """
-        Translate the ellipse so centre is at the origin.
-
-        The translation operation is recorded in the object's history. After translation, if the
-        centre of the ellipse is at the origin and its orientation is "horizontal",
-        the ellipse is considered to be in its standard form.
-        """
-        self.history.append(f"Equation: {str(self)}")
-        h, k = self.centre[0], self.centre[1]
-        original = h, k
-
-        # Translation Matrix
-        T = sympy.Matrix([[1, 0, h],
-                          [0, 1, k],
-                          [0, 0, 1]])
-
-        self.coeff_matrix = T.T * self.coeff_matrix * T
-        self._clean_coeff_matrix(threshold, tolerance, rational)
-
-        # Update state from the new matrix and record the new state in history
-        self.history.append(f"Translation of centre, {original} to the origin")
-        self._update_from_matrix()
-        self.centre = self.get_centre()
-
-        # Update standard_form flag
-        if self.centre == (0, 0) and self.orientation[0] == 'horizontal':
-            self.standard_form = True
-            # Eradicate the constant term in coefficient matrix (Normalise the equation)
-            self.coeff_matrix = abs(1/self.F) * self.coeff_matrix
-            # Update coefficients
-            self._update_from_matrix()
-
-        # Write to history of the object
-        self.record_state()
-
-        if display:
-            print("We form a translation matrix T where (h, k) are the coordinates (x, y) of the centre")
-            self.symbolic_translation()
-
-    def rotate(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
-        """
-        Rotates the ellipse to a 'horizontal' or 'standard form' based on its current orientation.
-        If standard form, the coefficients are normalised into the form, x^2/a^2 + y^2/b^2 = 1
-
-        This method performs the rotation by creating a rotation matrix, determined by the orientation of the ellipse.
-        If the orientation is 'vertical', a 90-degree (pi/2 radians) rotation is applied.
-        If the orientation is 'rotated', the rotation angle is adjusted according to its sign:
-        - If it is negative, the absolute value of the angle is used.
-        - If it is positive, pi minus the angle is used.
-
-        Forms rotation matrix and updates the coefficient matrix of the ellipse.
-        Then, any coefficients in the updated matrix less than the provided threshold are set to zero.
-
-        If the `rational` argument is `True`,
-        the elements of the coefficient matrix are expressed as a rational number within the given tolerance.
-
-        If the `display` argument is `True`,
-        A symbolic representation of the rotation operation is displayed.
-
-        Parameters:
-        display (bool, optional): If True, displays the symbolic rotation operation. Defaults to False.
-        rational (bool, optional): If True, expresses the coefficient matrix elements as rational numbers. Defaults to True.
-        threshold (float, optional): Elements of the coefficient matrix less than this value are set to zero. Defaults to 1e-14.
-        tolerance (float, optional): Tolerance used when expressing coefficient matrix elements as rational numbers. Defaults to 0.001.
-        """
-        self.history.append(f"Equation: {str(self)}")
+    def _get_rotation_angle(self):
+        """Abstract method of rotate"""
         orientation, rotation_angle = self.orientation[0], self.orientation[1]
 
         if orientation == "vertical":
@@ -881,18 +830,16 @@ class Ellipse(Conic):
             else:
                 rotation_angle = (sympy.pi - rotation_angle).evalf()
 
-        R = sympy.Matrix([[sympy.cos(rotation_angle), sympy.sin(rotation_angle), 0],
-                          [-sympy.sin(rotation_angle), sympy.cos(rotation_angle), 0],
-                          [0, 0, 1]])
+        return rotation_angle
 
-        self.coeff_matrix = R.transpose() * self.coeff_matrix * R
+    def _get_translation_point(self):
+        """Abstract method of translate"""
+        h, k = self.centre[0], self.centre[1]
+        original = h, k
+        return h, k, original
 
-        self._clean_coeff_matrix(threshold, tolerance, rational)
-
-        self.history.append(f"Performed rotation by {round(float(sympy.deg(rotation_angle)), 4)} degrees CCW")
-        self._update_from_matrix()
-        self.centre = self.get_centre()
-
+    def _standard_form_flag(self):
+        """Abstract method of rotate and translate"""
         # Update standard_form flag
         if self.centre == (0, 0) and self.orientation[0] == 'horizontal':
             self.standard_form = True
@@ -900,13 +847,6 @@ class Ellipse(Conic):
             self.coeff_matrix = abs(1/self.F) * self.coeff_matrix
             # Update coefficients
             self._update_from_matrix()
-
-        # Write to history of the object
-        self.record_state()
-
-        if display:
-            print("We form a rotation matrix R;")
-            self.symbolic_rotation()
 
     def record_state(self):
         """
@@ -936,7 +876,7 @@ class Ellipse(Conic):
     def plot(self, x_range=None, y_range=None):
         plot_ellipse(self, x_range, y_range)
 
-    def plot_standard(self, x_range=None, y_range=None):
+    def plot_standard(self, x_range=None, y_range=None, decimal_places=4):
         if self.standard_form:
             plot_standard(self, x_range, y_range)
             sympy.init_printing()
@@ -944,7 +884,7 @@ class Ellipse(Conic):
             # Eccentricity
             print("------")
             print("Eccentricity: \n")
-            print("Approximation: ", sympy.N(self.eccentricity, 3))
+            print("Approximation: ", sympy.N(self.eccentricity, decimal_places))
             print("Exact: ", end="")
             display(self.eccentricity)
 
@@ -952,7 +892,7 @@ class Ellipse(Conic):
             print("\n------")
             print("Foci: \n")
             for element in self.foci:
-                rounded_element = tuple(sympy.N(val, 3) for val in element)
+                rounded_element = tuple(sympy.N(val, decimal_places) for val in element)
                 print("Approximation: ", rounded_element)
                 print("Exact: ", end="")
                 display(element)
@@ -965,7 +905,7 @@ class Ellipse(Conic):
                 lhs = element.lhs
                 rhs = element.rhs
                 # Approximate the right side
-                rounded_rhs = sympy.N(rhs, 3)
+                rounded_rhs = sympy.N(rhs, decimal_places)
                 # Print the approximation
                 print(f"Approximation: {lhs} = {rounded_rhs}")
                 # Display the exact value
@@ -977,7 +917,7 @@ class Ellipse(Conic):
             print("Vertices: \n")
             for sub_list in self.vertices:
                 for element in sub_list:
-                    rounded_element = tuple(sympy.N(val, 3) for val in element)
+                    rounded_element = tuple(sympy.N(val, decimal_places) for val in element)
                     print("Approximation: ", rounded_element)
                     print("Exact: ", end="")
                     display(element)
@@ -988,8 +928,11 @@ class Ellipse(Conic):
 class Hyperbola(Conic):
     def __init__(self, equation):
         super().__init__(equation)
-        self.centre = self.get_centre()
         self.standard_form = False
+
+    @property
+    def centre(self):
+        return self.get_centre()
 
     @property
     def orientation(self):
@@ -1101,13 +1044,25 @@ class Hyperbola(Conic):
         else:  # Vertical
             return sympy.Eq(x, self.centre[0])
 
-    def translate_origin(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
-        """To be implemented: translate the hyperbola to the origin"""
+    def _get_rotation_angle(self):
+        """Abstract method of rotate"""
         pass
 
-    def rotate(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
-        """To be implemented: rotate the hyperbola to the standard position"""
-        pass
+    def _get_translation_point(self):
+        """Abstract method of translate"""
+        h, k = self.centre[0], self.centre[1]
+        original = h, k
+        return h, k, original
+
+    def _standard_form_flag(self):
+        """Abstract method of rotate and translate"""
+        # Update standard_form flag
+        if self.centre == (0, 0) and self.orientation[0] == 'horizontal':
+            self.standard_form = True
+            # Eradicate the constant term in coefficient matrix (Normalise the equation)
+            self.coeff_matrix = abs(1/self.F) * self.coeff_matrix
+            # Update coefficients
+            self._update_from_matrix()
 
     def record_state(self):
         """To be implemented: record the current state of the hyperbola"""

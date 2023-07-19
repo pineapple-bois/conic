@@ -54,10 +54,10 @@ $$
 If the conic is [non-degenerate](https://en.wikipedia.org/wiki/Degenerate_conic) then, 
 
 - if $B^2-4 A C<0$, the equation represents an ellipse.
-- - if $A=C$ and $B=0$, the equation represents a circle, a special case of an ellipse.
+  - if $A=C$ and $B=0$, the equation represents a circle, a special case of an ellipse.
 - if $B^2-4 A C=0$, the equation represents a parabola.
 - if $B^2-4 A C>0$, the equation represents a hyperbola.
-- - if $\tau=A+C=0$, the equation represents a rectangular hyperbola.
+  - if $\tau=A+C=0$, the equation represents a rectangular hyperbola.
 
 ----
 
@@ -69,6 +69,8 @@ For example;
 The equation $x^2+y^2=1$ should be input as 'x^2 + y^2 -1'
 
 The equation $y=x^2$ should be input as 'x^2'
+
+Either the ** or ^ operators are accepted for exponentiation. The * operator is required for multiplication.
 
 Parsing relies on the [SymPy](https://www.sympy.org/en/index.html) library to eliminate fractions and multiply the equation by the LCM thus reducing it to the general form of a conic section with integer coefficients.
 
