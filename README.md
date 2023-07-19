@@ -1,18 +1,18 @@
 # `Conics`
-### A Python class to classify, manipulate and visualise conic sections.
+### A Python class to classify, manipulate and visualise conic sections. This class is designed to extend the functionality of [`polynomial_methods`](https://github.com/pineapple-bois/polynomial-methods)
 
 ----
 
 Conic types are instantiated from a bi-variate polynomial equation by the [factory method](https://en.wikipedia.org/wiki/Factory_method_pattern) which is a design pattern in object-oriented programming. 
 
 We create objects to represent conic sections without having to specify the type of conic section to create. 
-In this sense, `Conics` is a classifier of conic sections. 
+In this sense, [`conic_factory.py`](conics/conic_factory.py) is a classifier of conic sections. 
 
 ----
 
 ### Definition
 
-A conic section is an algebraic curve of degree two whose coordinates satisfy a quadratic equation in two variables;
+A conic section is a plane algebraic curve of degree two whose coordinates satisfy a quadratic equation in two variables;
 
 $$
 Ax^2 + Bxy + Cy^2 + Dx + Ey + F = 0
@@ -39,7 +39,7 @@ y
 \end{array}\right)+F=0 .
 $$
 
-Conic sections described by this equation can be classified in terms of the discriminant $\Delta = B^2 -4AC$.
+Conic sections described by this equation can be classified in terms of the discriminant $\Delta = B^2 -4AC$ of the quadratic part of the general equation, $Ax^2 + Bxy + Cy^2$.
 
 The discriminant is $-4\Delta$ where $\Delta$ is the determinant of the quadratic matrix $\textbf{M}$,
 
@@ -62,13 +62,17 @@ If the conic is [non-degenerate](https://en.wikipedia.org/wiki/Degenerate_conic)
 ----
 
 ### Input Parsing and Processing: 
-`Conic` takes a string representation of polynomial equation as input. Initial parsing relies on the [SymPy](https://www.sympy.org/en/index.html) library to eliminate fractions and multiply the equation by the LCM thus reducing it to the general form of a conic section.
+`Conic` takes as input a string representation of polynomial equation such as, 'x^2 + y^2 -1'. 
+
+Initial parsing relies on the [SymPy](https://www.sympy.org/en/index.html) library to eliminate fractions and multiply the equation by the LCM thus reducing it to the general form of a conic section.
 
 The `poly_dictionary` program then decomposes the equation into a dictionary of the form; {(degree of x, degree of y): coefficient, ...} with integer coefficients.
 
 ----
 
-### Example usage;
+### Example
+
+How to create and classify a conic section. 
 
 ```python
 mystery_conic = "x^2/4 + x*y/3 + y^2/9 -2*x + 3*y -1"
@@ -82,3 +86,72 @@ Out[1]: Parabola
 In [2]: conic.coeff
 Out[2]: {(2, 0): 9, (1, 1): 12, (1, 0): -72, (0, 2): 4, (0, 1): 108, (0, 0): -36}
 ```
+The input equation represented a parabola and the output dictionary gives the coefficients of the general form equation.
+
+----
+
+#### Common methods
+
+Once a conic object has been instantiated, `get_info()` is the first method to call to give an overview of the characteristics along with `plot(x_range(min, max), y_range(min, max))` 
+
+These methods have a common name yet are uniquely defined within each subclass.
+
+`get_info()` packages a number of useful methods and returns;
+- original input string `self.__repr__()`
+- type of conic `self.type`
+- coefficient dictionary `self.coeff`
+- general form equation
+- matrices: full and quadratic `self.print_matrices`
+- orientation (if applicable) `self.orientation`
+- axis of symmetry (if applicable) `self.axis`
+- plot `self.plot`
+
+----
+
+### Standardisation
+
+Conic sections can be rotated and translated within the $(x, y)$-plane. Should a transformation occur, the state of the conic will be recorded at each stage and can be accessed with `self.print_history()`.
+
+The aim of the transformation is to render the conic to 'standard form' where further attributes can be calculated. Directly calling these attributes is disallowed for a conic not in standard form. The user is directed to first perform a transformation.
+
+----
+
+### Notebooks
+
+Tutorials of the functionality and methods available to each type of conic section are explored in the below notebooks;
+
+#### [Parabolas](Notebooks/Parabolas.ipynb)
+
+#### [Circles](Notebooks/Circles.ipynb)
+
+#### [Ellipse](Notebooks/Ellipse.ipynb)
+
+#### Hyperbolae (work in progress)
+
+----
+
+### Dependencies
+
+This project depends on the following Python libraries:
+
+`numpy`
+`matplotlib`
+`sympy`
+`IPython`
+
+Ensure you have them installed in your environment. If not, you can install the required dependencies from the requirements.txt file:
+```bash
+pip install -r requirements.txt
+```
+
+----
+
+### Further Development
+
+- The Hyperbola methods are yet to be written. A hyperbola can be instantiated but will only have access to the methods of `Conic`
+- Adapting `poly_dictionary` to accept radical coefficients 
+- Adding a parameters to the transformation methods to perform arbitrary translation and rotation in $\mathbb{E}^2$
+- Allowing scaling and dilation
+- Writing extensive instruction and documentation
+
+----
