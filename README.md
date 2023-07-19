@@ -13,12 +13,15 @@ In this sense, `Conics` is a classifier of conic sections.
 ### Definition
 
 A conic section is an algebraic curve of degree two whose coordinates satisfy a quadratic equation in two variables;
+
 $$
 Ax^2 + Bxy + Cy^2 + Dx + Ey + F = 0
 $$
+
 with all coefficients $\in \mathbb{R}$ and $A, B, C$ not all zero. This is the general form equation of the conic
 
 The above equation can be written in matrix notation as
+
 $$
 \left(\begin{array}{ll}
 x & y
@@ -38,7 +41,11 @@ $$
 
 Conic sections described by this equation can be classified in terms of the discriminant $\Delta = B^2 -4AC$.
 
-The discriminant is $-4\Delta$ where $\Delta$ is the quadratic matrix determinant $\left|\begin{array}{cc}A & B / 2 \\ B / 2 & C\end{array}\right|$.
+The discriminant is $-4\Delta$ where $\Delta$ is the quadratic matrix determinant 
+
+$$
+\mathrm{det} \textbf{M} = \left|\begin{array}{cc}A & B / 2 \\ B / 2 & C\end{array}\right|
+$$.
 
 If the conic is [non-degenerate](https://en.wikipedia.org/wiki/Degenerate_conic) then, 
 
