@@ -62,11 +62,11 @@ If the conic is [non-degenerate](https://en.wikipedia.org/wiki/Degenerate_conic)
 ----
 
 ### Input Parsing and Processing: 
-`Conic` takes as input a string representation of polynomial equation such as, 'x^2 + y^2 -1'. 
+`Conic` takes a string representation of a polynomial equation such as, 'x^2 + y^2 -1' as input. 
 
-Initial parsing relies on the [SymPy](https://www.sympy.org/en/index.html) library to eliminate fractions and multiply the equation by the LCM thus reducing it to the general form of a conic section.
+Initial parsing relies on the [SymPy](https://www.sympy.org/en/index.html) library to eliminate fractions and multiply the equation by the LCM thus reducing it to the general form of a conic section with integer coefficients.
 
-The `poly_dictionary` program then decomposes the equation into a dictionary of the form; {(degree of x, degree of y): coefficient, ...} with integer coefficients.
+The `poly_dictionary` program then decomposes the equation into a dictionary of the form; {(degree of x, degree of y): coefficient, ...} 
 
 ----
 
