@@ -41,12 +41,15 @@ $$
 
 Conic sections described by this equation can be classified in terms of the discriminant $\Delta = B^2 -4AC$.
 
-The discriminant is $-4\Delta$ where $\Delta$ is the quadratic matrix determinant,
+The discriminant is $-4\Delta$ where $\Delta$ is the determinant of the quadratic matrix $\textbf{M}$,
 
 $$
-\mathrm{det} \textbf{M} = 
-\left|\begin{array}{cc}A & B / 2 \\ B / 2 & C\end{array}\right|
-$$.
+\det(\mathbf{M}) = 
+\begin{vmatrix}
+A & B/2 \\
+B/2 & C 
+\end{vmatrix}
+$$
 
 If the conic is [non-degenerate](https://en.wikipedia.org/wiki/Degenerate_conic) then, 
 
