@@ -8,10 +8,9 @@ import sympy
 
 
 def plot_parabola(conic, x_range=None, y_range=None):
-    # Increase figure size
     plt.figure(figsize=(10, 8))  # Adjust the values as per your desired size
 
-    if conic.orientation[0] == 'rotated':
+    if conic.orientation[0] == 'Rotated':
         if not x_range:
             x_range = [-10, 10]
         if not y_range:
@@ -23,35 +22,30 @@ def plot_parabola(conic, x_range=None, y_range=None):
         if not y_range:
             y_range = [float(k) - 5, float(k) + 5]
 
-    if conic.orientation[0] == 'vertical':  # Parabola opens up or down
+    if conic.orientation[0] == 'Vertical':  # Parabola opens up or down
         x = np.linspace(x_range[0], x_range[1], 400)
         y = (conic.A * x ** 2 + conic.D * x + conic.F) / -conic.E
         plt.plot(x, y, color='r')
-        plt.axvline(x=conic.axis, color='b', linestyle='dotted')
-        plt.plot(h, k, 'bo')  # plot the vertex as a blue dot
-        plt.annotate(f'Vertex', (h, k), textcoords="offset points",
-                     xytext=(-10, -10), ha='center')  # Annotate vertex
+        plt.axvline(x=conic.axis.rhs, color='b', linestyle='dotted')
+        plt.plot(h, k, 'go')  # plot the vertex as a green dot
         custom_lines = [Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10),
                         Line2D([0], [0], color='blue', linestyle='dotted')]
-        axis_label = f"x={conic.axis}"
-        plt.legend(custom_lines, [f'Vertex: ({h}, {k})', axis_label], loc='best')
+        axis_label = f"${sympy.latex(conic.axis)}$"
+        plt.legend(custom_lines, [f'Vertex: $({h}, {k})$', axis_label], loc='best')
 
 
-    elif conic.orientation[0] == 'horizontal':  # Parabola opens to the right or left
+    elif conic.orientation[0] == 'Horizontal':  # Parabola opens to the right or left
         y = np.linspace(y_range[0], y_range[1], 400)
         x = (conic.C * y ** 2 + conic.E * y + conic.F) / -conic.D
         plt.plot(x, y, color='r')
-        plt.axhline(y=conic.axis, color='b', linestyle='dotted')
-        plt.plot(h, k, 'bo')  # plot the vertex as a blue dot
-        plt.annotate(f'Vertex', (h, k), textcoords="offset points",
-                     xytext=(-10, -10), ha='center')  # Annotate vertex
+        plt.axhline(y=conic.axis.rhs, color='b', linestyle='dotted')
+        plt.plot(h, k, 'go')  # plot the vertex as a green dot
         custom_lines = [Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', markersize=10),
                         Line2D([0], [0], color='blue', linestyle='dotted')]
-        axis_label = f"y={conic.axis}"
-        plt.legend(custom_lines, [f'Vertex: ({h}, {k})', axis_label], loc='best')
+        axis_label = f"${sympy.latex(conic.axis)}$"
+        plt.legend(custom_lines, [f'Vertex: $({h}, {k})$', axis_label], loc='best')
 
-    elif conic.orientation[0] == 'rotated':
-        # This will require both x and y ranges
+    elif conic.orientation[0] == 'Rotated':
         x = np.linspace(x_range[0], x_range[1], 400)
         y = np.linspace(y_range[0], y_range[1], 400)
         x, y = np.meshgrid(x, y)
@@ -60,13 +54,15 @@ def plot_parabola(conic, x_range=None, y_range=None):
 
         # Plot the axis of symmetry
         x_sym, y_sym = sympy.symbols('x y')
-        a = conic.axis.coeff(x_sym)
-        b = conic.axis.coeff(y_sym)
-        m = -a / b  # slope
-        c = conic.axis.subs({x_sym: 0, y_sym: 0}) / b  # intercept
+        m = conic.axis.rhs.coeff(x_sym)
+        b = conic.axis.rhs.subs(x_sym, 0)
         x_values = np.linspace(x_range[0], x_range[1], 400)
-        y_values = m * x_values - c
+        y_values = m * x_values + b
         plt.plot(x_values, y_values, color='b', linestyle='dotted')
+
+        custom_lines = [Line2D([0], [0], color='blue', linestyle='dotted')]
+        axis_label = f"${sympy.latex(conic.axis)}$"
+        plt.legend(custom_lines, [axis_label], loc='best')
 
     plt.gca().set_aspect('equal', adjustable='box')
     plt.xlim(x_range)

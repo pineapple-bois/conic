@@ -55,21 +55,6 @@ class Conic:
         else:
             raise ValueError('Cannot instantiate this type of the conic section')
 
-    @staticmethod
-    def _remove_fraction(equation_str):
-        """
-        Removes any fractional terms from the equation.
-        """
-        denominators = [sympy.fraction(term)[1] for term in equation_str.as_ordered_terms()]
-
-        if all(denom == 1 for denom in denominators):
-            return str(equation_str)
-
-        lcm_value = sympy.lcm(denominators)
-        equation_no_frac = equation_str * lcm_value
-
-        return equation_no_frac
-
     @abstractmethod
     def _get_rotation_angle(self):
         """Calculate and return the rotation angle for the conic section."""
@@ -88,6 +73,21 @@ class Conic:
     @property
     def coeff(self):
         return self.coefficients
+
+    @staticmethod
+    def _remove_fraction(equation_str):
+        """
+        Removes any fractional terms from the equation.
+        """
+        denominators = [sympy.fraction(term)[1] for term in equation_str.as_ordered_terms()]
+
+        if all(denom == 1 for denom in denominators):
+            return str(equation_str)
+
+        lcm_value = sympy.lcm(denominators)
+        equation_no_frac = equation_str * lcm_value
+
+        return equation_no_frac
 
     def __repr__(self):
         return f"Original : {self.original_input}"
@@ -257,9 +257,7 @@ class Conic:
         """
         Translates the vertex/centre of the conic to the origin.
 
-        The translation operation is recorded in the object's history. After translation, if the
-        vertex of the parabola is at the origin and its orientation is "horizontal, positive",
-        the parabola is considered to be in its standard form.
+        The translation operation is recorded in the object's history.
         """
         h, k, original = self._get_translation_point()
 
@@ -355,6 +353,13 @@ class Conic:
         else:
             return self.expression  # Return as a sympy.Poly object
 
+    def display(self):
+        """
+        Displays the sympy expression of the polynomial using IPython's display system.
+        """
+        self._convert_to_sympy_expression()
+        display(self.expression.as_expr())
+
     def draw(self):
         """
         Method to quickly plot an instance of a conic.
@@ -422,8 +427,13 @@ class Parabola(Conic):
         print(f"{self.__repr__()}\nType: {self.type}\nCoefficients: {self.coeff}"
               f"\nGeneral Form: {self}\n")
         self.print_matrices()
-        print(f"\nOrientation: {self.get_orientation()}")
-        print(f"Axis of symmetry: {self.axis}")
+        if self.orientation[0] == 'Rotated':
+            angle_in_degrees = sympy.N(sympy.deg(self.orientation[1]), 5)
+            print(f"Orientation: {self.orientation[0], angle_in_degrees} degrees\nradians: {self.orientation[1]}\n")
+        else:
+            print(f"Orientation: {self.orientation}\n")
+        print(f"Axis of symmetry:")
+        display(self.axis)
         self.plot()
 
     def get_orientation(self):
@@ -435,46 +445,52 @@ class Parabola(Conic):
         """
         if self.A != 0 and self.C == 0:
             if self.A > 0:
-                return "vertical", "positive"
+                return "Vertical", "Positive"
             else:
-                return "vertical", "negative"
+                return "Vertical", "Negative"
 
         elif self.A == 0 and self.C != 0:
             if self.C > 0:
                 if self.D > 0:
-                    return "horizontal", "negative"  # modification here
+                    return "Horizontal", "Negative"  # modification here
                 else:  # when self.D =< 0
-                    return "horizontal", "positive"  # and here
+                    return "Horizontal", "Positive"  # and here
             else:
                 if self.D > 0:
-                    return "horizontal", "positive"
+                    return "Horizontal", "Positive"
                 else:  # when self.D =< 0
-                    return "horizontal", "negative"
+                    return "Horizontal", "Negative"
 
         elif self.A != 0 and self.C != 0:
             theta = sympy.Rational(1, 2) * sympy.atan2(self.B, (self.A - self.C))
 
-            return "rotated", float(theta)
+            return "Rotated", float(theta)
 
     def compute_axis(self):
         """
-        Computes the axis of symmetry
+        Computes the axis of symmetry.
 
         For a non-rotated parabola, the axis is computed using the coefficients of the equation.
         For a rotated parabola, the axis is computed using the derivatives of the general equation.
 
         Returns
         -------
-        The equation of the axis in the form of a sympy Rational number for non-rotated parabolas.
-        For rotated parabolas, returns a sympy Add object representing the equation of the axis.
+        The equation of the axis in the form of a sympy Equality object for all parabolas.
         """
-        if not self.orientation[0] == 'rotated':
-            if self.orientation[0] == 'vertical':
-                axis = sympy.Rational(-self.D / (2 * self.A)).limit_denominator(100000)
+        x, y = sympy.symbols('x y')
+        if not self.orientation[0] == 'Rotated':
+            if self.orientation[0] == 'Vertical':
+                # The axis of symmetry for a vertical parabola is a vertical line (x = h)
+                h = sympy.Rational(-self.D / (2 * self.A)).limit_denominator(100000)
+                axis = sympy.Eq(x, h)
             else:
-                axis = sympy.Rational(-self.E / (2 * self.C)).limit_denominator(100000)
+                # The axis of symmetry for a horizontal parabola is a horizontal line (y = k)
+                k = sympy.Rational(-self.E / (2 * self.C)).limit_denominator(100000)
+                axis = sympy.Eq(y, k)
         else:
             x, y = sympy.symbols('x y')
+
+            # Save the general equation in the symbolic form
             gen_eqn = self.save_as_sympy(return_expr=True)
 
             # Compute the derivatives
@@ -483,11 +499,19 @@ class Parabola(Conic):
 
             # Factorize the quadratic part
             alpha = sympy.sqrt(self.A)
-            if self.B >= 0:
-                beta = sympy.sqrt(self.C)
-            else:
-                beta = -sympy.sqrt(self.C)
-            axis = alpha * gen_x + beta * gen_y
+            beta = sympy.sqrt(self.C) if self.B >= 0 else -sympy.sqrt(self.C)
+
+            # Form the equation alpha * gen_x + beta * gen_y = 0
+            equation = alpha * gen_x + beta * gen_y
+
+            # Rearrange the equation in the form y = mx + b
+            equation_y = sympy.solve(equation, y)[0]
+
+            # Simplify the equation
+            simplified_equation_y = sympy.simplify(equation_y)
+
+            # Form an equation object
+            axis = sympy.Eq(y, simplified_equation_y)
 
         return axis
 
@@ -499,8 +523,8 @@ class Parabola(Conic):
         The method will handle both vertical and horizontal parabolas.
         For a rotated parabola, a different method is employed, and None is returned for both h and k.
         """
-        if self.orientation[0] != 'rotated':  # handle vertical and horizontal
-            if self.orientation[0] == 'vertical':  # Parabola opens up or down
+        if self.orientation[0] != 'Rotated':  # handle vertical and horizontal
+            if self.orientation[0] == 'Vertical':  # Parabola opens up or down
                 a = self.A / -self.E
                 d = self.D / -self.E
                 f = self.F / -self.E
@@ -561,15 +585,15 @@ class Parabola(Conic):
     def _get_rotation_angle(self):
         orientation, rotation_angle = self.get_orientation()
 
-        if orientation == "vertical":
-            if rotation_angle == "positive":
+        if orientation == "Vertical":
+            if rotation_angle == "Positive":
                 rotation_angle = sympy.pi * 3 / 2  # 270 degrees
-            elif rotation_angle == "negative":
+            elif rotation_angle == "Negative":
                 rotation_angle = sympy.pi / 2  # 90 degrees
-        elif orientation == "horizontal":
-            rotation_angle = sympy.pi if rotation_angle == "negative" else 0
+        elif orientation == "Horizontal":
+            rotation_angle = sympy.pi if rotation_angle == "Negative" else 0
 
-        if orientation == "rotated":
+        if orientation == "Rotated":
             epsilon = 1e-10
             rotated_angle = rotation_angle
             if abs(abs(rotated_angle) - sympy.pi / 4) > epsilon:  # Not close to 45 degrees
@@ -585,7 +609,7 @@ class Parabola(Conic):
 
     def _standard_form_flag(self):
         # Update standard_form flag
-        if self.vertex == (0, 0) and self.orientation == ('horizontal', 'positive'):
+        if self.vertex == (0, 0) and self.orientation == ('Horizontal', 'Positive'):
             self.standard_form = True
 
     def _rational_or_radical(self, x):
@@ -697,19 +721,19 @@ class Ellipse(Conic):
     @property
     def orientation(self):
         """
-        Return the orientation of the ellipse: 'horizontal', 'vertical' or 'rotated'.
+        Return the orientation of the ellipse: 'Horizontal', 'Vertical' or 'Rotated'.
         """
         # Calculate the angle in radians
         theta = sympy.Rational(1, 2) * sympy.atan(sympy.Rational(self.B, (self.A - self.C)))
 
         # Use sympy's equivalence checking for comparison
         if self.B != 0:
-            return 'rotated', theta
+            return 'Rotated', theta
         else:
             if self.A > self.C:
-                return 'vertical', 0
+                return 'Vertical', 0
             elif self.A < self.C:
-                return 'horizontal', 0
+                return 'Horizontal', 0
 
     @property
     def semimajor_axis(self):
@@ -765,7 +789,7 @@ class Ellipse(Conic):
         print(f"{self.__repr__()}\nType: {self.type}\nCoefficients: {self.coeff}"
               f"\nGeneral Form: {self}\n")
         self.print_matrices()
-        if self.orientation[0] == 'rotated':
+        if self.orientation[0] == 'Rotated':
             angle_in_degrees = sympy.N(sympy.deg(self.orientation[1]), 5)
             print(f"Orientation: {self.orientation[0], angle_in_degrees} degrees\nradians: {self.orientation[1]}\n")
         else:
@@ -782,7 +806,7 @@ class Ellipse(Conic):
         x, y = sympy.symbols('x y')
 
         # Calculate the slope from the rotation angle
-        if self.orientation[0] == 'rotated':
+        if self.orientation[0] == 'Rotated':
             m = sympy.tan(self.orientation[1])
             # Calculate the y-intercept from the y-coordinate of the center
             c = self.centre[1] - m * self.centre[0]
@@ -790,7 +814,7 @@ class Ellipse(Conic):
             simplified_eq = sympy.Eq(eqn.lhs, sympy.trigsimp(eqn.rhs))
             return simplified_eq
 
-        elif self.orientation[0] == 'horizontal':
+        elif self.orientation[0] == 'Horizontal':
             return sympy.Eq(y, self.centre[1])
 
         else:  # vertical
@@ -821,10 +845,10 @@ class Ellipse(Conic):
         """Abstract method of rotate"""
         orientation, rotation_angle = self.orientation[0], self.orientation[1]
 
-        if orientation == "vertical":
+        if orientation == "Vertical":
             rotation_angle = sympy.pi / 2  # 90
 
-        if orientation == "rotated":
+        if orientation == "Rotated":
             if rotation_angle < 0:
                 rotation_angle = (abs(rotation_angle)).evalf()
             else:
@@ -843,7 +867,7 @@ class Ellipse(Conic):
         # Update standard_form flag
         if self.centre == (0, 0) and self.orientation[0] == 'horizontal':
             self.standard_form = True
-            # Eradicate the constant term in coefficient matrix (Normalise the equation)
+            # Normalise the constant term in coefficient matrix
             self.coeff_matrix = abs(1/self.F) * self.coeff_matrix
             # Update coefficients
             self._update_from_matrix()
@@ -1057,7 +1081,7 @@ class Hyperbola(Conic):
     def _standard_form_flag(self):
         """Abstract method of rotate and translate"""
         # Update standard_form flag
-        if self.centre == (0, 0) and self.orientation[0] == 'horizontal':
+        if self.centre == (0, 0) and self.orientation[0] == 'Horizontal':
             self.standard_form = True
             # Eradicate the constant term in coefficient matrix (Normalise the equation)
             self.coeff_matrix = abs(1/self.F) * self.coeff_matrix

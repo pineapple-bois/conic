@@ -166,8 +166,6 @@ pip install .
 
 ### Further Development
 
-##### The code requires a  major refactor redefining `rotate` and `translate` in the parent class. Subtle differences will be abstract methods in the child classes
-
 - Basic Hyperbola methods now implemented ✅
 
 Next
