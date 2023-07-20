@@ -172,6 +172,7 @@ def plot_ellipse(self, x_range=None, y_range=None):
     # Plot the semi-major axis
     plt.contour(x_vals, y_vals, lambda_axis(x_vals, y_vals), levels=[0], colors='b',
                 linewidths=0.5, linestyles='dashed')
+
     plt.gca().set_aspect('equal', adjustable='box')
     plt.axhline(0, color='gray', linewidth=0.5)
     plt.axvline(0, color='gray', linewidth=0.5)
@@ -179,7 +180,7 @@ def plot_ellipse(self, x_range=None, y_range=None):
     plt.show()
 
 
-def plot_standard(self, x_range=None, y_range=None):
+def ellipse_standard(self, x_range=None, y_range=None):
     """
     Plot the ellipse with its foci, directrices, and vertices.
     """
@@ -230,4 +231,132 @@ def plot_standard(self, x_range=None, y_range=None):
     plt.legend(handles=[red_patch, green_patch, blue_patch, purple_patch])
 
     plt.title(f"${self.__str__()}$")
+    plt.show()
+
+
+# HYPERBOLAS
+
+def plot_hyperbola(self, x_range=None, y_range=None, fig_size=(12, 8)):
+    """
+    Method to plot an instance of a hyperbola along with its centre and transverse axis line.
+    """
+    plt.figure(figsize=fig_size)
+
+    # Default ranges
+    if x_range is None:
+        x_range = (-10, 10)
+    if y_range is None:
+        y_range = (-10, 10)
+
+    # Convert sympy expressions to lambdified expressions for plotting
+    x, y = sympy.symbols('x y')
+    lambda_axis = sympy.lambdify((x, y), self.transverse_axis_line().lhs - self.transverse_axis_line().rhs, 'numpy')
+
+    x_vals, y_vals = np.mgrid[x_range[0]:x_range[1]:200j, y_range[0]:y_range[1]:200j]  # grid of points
+
+    # Define the hyperbola equation from the coefficients
+    z = (self.A * x_vals ** 2 + self.B * x_vals * y_vals + self.C * y_vals ** 2
+         + self.D * x_vals + self.E * y_vals + self.F)
+
+    # Plot the hyperbola
+    plt.contour(x_vals, y_vals, z, levels=[0], colors='r')
+
+    # Plot the centre
+    plt.plot(*self.centre, 'go')
+
+    # Add legend
+    custom_lines = [Line2D([0], [0], color='red', lw=2),
+                    Line2D([0], [0], marker='o', color='w', markerfacecolor='green', markersize=10)]
+    plt.legend(custom_lines, ['Hyperbola', f'Centre: $({self.centre[0]}, {self.centre[1]})$'], loc='best')
+
+    # Plot the transverse axis line
+    # We don't plot if in standard form as this line is the x-axis
+    if not self.standard_form:
+
+        if self.orientation[0] == 'Rotated':
+            plt.contour(x_vals, y_vals, lambda_axis(x_vals, y_vals), levels=[0],
+                        colors='b', linewidths=0.5, linestyles='dashed')
+
+        elif self.orientation[0] == 'Horizontal':
+            plt.axhline(self.centre[1], color='b', linestyle='--')
+            # Update legend to include axis line
+            custom_lines.append(Line2D([0], [0], color='blue', linestyle='--'))
+            axis_label = f"${sympy.latex(self.transverse_axis_line())}$"
+            plt.legend(custom_lines, ['Hyperbola', f'Centre: $({self.centre[0]},'
+                                                   f' {self.centre[1]})$', axis_label], loc='best')
+
+        else:  # Vertical
+            plt.axvline(self.centre[0], color='b', linestyle='--')
+            # Update legend to include axis line
+            custom_lines.append(Line2D([0], [0], color='blue', linestyle='--'))
+            axis_label = f"${sympy.latex(self.transverse_axis_line())}$"
+            plt.legend(custom_lines, ['Hyperbola', f'Centre: $({self.centre[0]},'
+                                                   f' {self.centre[1]})$', axis_label], loc='best')
+
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.axhline(0, color='gray', linewidth=0.5)
+    plt.axvline(0, color='gray', linewidth=0.5)
+    plt.title(f"${self.__str__()}$")
+    plt.show()
+
+
+def hyperbola_standard(self, x_range=None, y_range=None, fig_size=(16, 8)):
+    """
+    Plot the hyperbola with its foci, directrices, asymptotes, and vertices.
+    """
+    # Define the plot
+    fig, ax = plt.subplots(figsize=fig_size)
+
+    if not x_range:
+        x_range = [-10, 10]
+    if not y_range:
+        y_range = [-10, 10]
+
+    # Convert sympy expressions to lambdified expressions for plotting
+    x, y = sympy.symbols('x y')
+
+    x_vals, y_vals = np.mgrid[x_range[0]:x_range[1]:200j, y_range[0]:y_range[1]:200j]  # grid of points
+
+    # Define the ellipse's equation from the coefficients
+    z = (self.A * x_vals ** 2 + self.C * y_vals ** 2 + self.F)
+
+    # Plot the ellipse
+    ax.contour(x_vals, y_vals, z, levels=[0], colors='red')
+
+    # Plot the foci
+    for focus in self.foci:
+        ax.plot(focus[0], focus[1], 'go')
+
+    # Plot the directrices
+    for d in self.directrices:
+        ax.axvline(d.rhs, color='blue', linewidth=0.5, linestyle='dashed')
+
+    # Plot the asymptotes
+    x_vals_asymptotes = np.linspace(x_range[0], x_range[1], 200)
+    for a in self.asymptotes:
+        y_vals_asymptotes = sympy.lambdify(x, a.rhs)(x_vals_asymptotes)
+        ax.plot(x_vals_asymptotes, y_vals_asymptotes, color='purple', linewidth=0.5, linestyle='dashed')
+
+    # Plot the vertices
+    for vertex in self.vertices:
+        ax.plot(vertex[0], vertex[1], 'co')
+
+    ax.set_aspect('equal', adjustable='box')
+    plt.axhline(0, color='gray', linewidth=0.5)
+    plt.axvline(0, color='gray', linewidth=0.5)
+
+    # Define the patches for the legend
+    red_patch = patches.Patch(color='red', label='Hyperbola')
+    green_patch = patches.Patch(color='green', label='Foci')
+    blue_patch = patches.Patch(color='blue', label=f'Directrices: $x=\\pm {sympy.latex(self.directrices[1].rhs)}$')
+    purple_patch = patches.Patch(color='purple', label=f'Asymptotes: $y=\\pm {sympy.latex(self.asymptotes[1].rhs)}$')
+    cyan_patch = patches.Patch(color='cyan', label='Vertices')
+
+    # Add legend
+    legend1 = plt.legend(handles=[red_patch, green_patch, cyan_patch,], loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=3)
+    plt.legend(handles=[purple_patch, blue_patch], loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2)
+    plt.gca().add_artist(legend1)
+    plt.subplots_adjust(left=0.1, bottom=0.2, right=0.9, top=0.9)
+    plt.title(f"${self.__str__()}$")
+    plt.tight_layout()  # To ensure that all elements fit within the figure boundaries
     plt.show()

@@ -221,6 +221,18 @@ class Conic:
         self.expression = self.save_as_sympy(return_expr=True)
         self.equation = str(self.expression)
 
+    def print_history(self):
+        """
+        This method prints the history of the transformations applied to the parabola
+        """
+        print(f"Original input:\n{self.original_input}\n")
+        for item in self.history:
+            if isinstance(item, str):
+                print(f"----------\n{item}\n")
+            elif isinstance(item, dict):
+                for key, value in item.items():
+                    print(f"{key} :\n{value}\n")
+
     def rotate(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
         """
         This method uses a rotation matrix to rotate the conic section.
@@ -634,18 +646,6 @@ class Parabola(Conic):
             'Standard Form?': self.standard_form
         })
 
-    def print_history(self):
-        """
-        This method prints the history of the transformations applied to the parabola
-        """
-        print(f"Original input:\n{self.original_input}\n")
-        for item in self.history:
-            if isinstance(item, str):
-                print(f"----------\n{item}\n")
-            elif isinstance(item, dict):
-                for key, value in item.items():
-                    print(f"{key} :\n{value}\n")
-
     def plot(self, x_range=None, y_range=None):
         plot_parabola(self, x_range, y_range)
 
@@ -874,7 +874,7 @@ class Ellipse(Conic):
 
     def record_state(self):
         """
-        This method records the current state of the parabola in the history of the object.
+        This method records the current state of the ellipse in the history of the object.
         """
         self.history.append({
             'Coefficients': self.coefficients,
@@ -885,24 +885,12 @@ class Ellipse(Conic):
             'Standard Form?': self.standard_form
             })
 
-    def print_history(self):
-        """
-        This method prints the history of the transformations applied to the ellipse
-        """
-        print(f"Original input:\n{self.original_input}\n")
-        for item in self.history:
-            if isinstance(item, str):
-                print(f"----------\n{item}\n")
-            elif isinstance(item, dict):
-                for key, value in item.items():
-                    print(f"{key} :\n{value}\n")
-
     def plot(self, x_range=None, y_range=None):
         plot_ellipse(self, x_range, y_range)
 
     def plot_standard(self, x_range=None, y_range=None, decimal_places=4):
         if self.standard_form:
-            plot_standard(self, x_range, y_range)
+            ellipse_standard(self, x_range, y_range)
             sympy.init_printing()
 
             # Eccentricity
@@ -977,45 +965,68 @@ class Hyperbola(Conic):
 
     @property
     def semi_transverse_axis(self):
-        """To be implemented: return the length of the semi-transverse axis"""
-        pass
+        """Return the length of the semi-transverse axis"""
+        if not self.standard_form:
+            raise ValueError("Semi-transverse axis can only be computed for hyperbolas in standard form")
+        a = self.A
+        return sympy.sqrt(1 / a)
 
     @property
     def semi_conjugate_axis(self):
-        """To be implemented: return the length of the semi-conjugate axis"""
-        pass
+        """Return the length of the semi-conjugate axis"""
+        if not self.standard_form:
+            raise ValueError("Semi-conjugate axis can only be computed for hyperbolas in standard form")
+        b = abs(self.C)
+        return sympy.sqrt(1 / b)
 
     @property
     def eccentricity(self):
-        """To be implemented: return the eccentricity of the hyperbola"""
-        pass
+        if not self.standard_form:
+            raise ValueError("Eccentricity can only be computed for hyperbolas in standard form")
+        # eccentricity e = sqrt(1 + (a/b)^2), a > b
+        a, b = self.semi_transverse_axis, self.semi_conjugate_axis
+        e = sympy.sqrt(1 + (a/b)**2)
+        return e
 
     @property
     def vertices(self):
-        """To be implemented: return the vertices of the hyperbola"""
-        pass
+        if not self.standard_form:
+            raise ValueError("Vertices can only be computed for hyperbolas in standard form")
+        a = self.semi_transverse_axis
+        vertices = [(self.centre[0] - a, self.centre[1]), (self.centre[0] + a, self.centre[1])]
+        return vertices
 
     @property
     def foci(self):
-        """To be implemented: return the foci of the hyperbola"""
-        pass
+        if not self.standard_form:
+            raise ValueError("Foci can only be computed for hyperbolas in standard form")
+        # Foci are on the line of the semi-transverse axis, a distance of +/- 'ae' from the center
+        a, e = self.semi_transverse_axis, self.eccentricity
+        return [(self.centre[0] - a*e, self.centre[1]), (self.centre[0] + a*e, self.centre[1])]
 
     @property
     def directrices(self):
-        """To be implemented: return the directrices of the hyperbola"""
-        pass
+        if not self.standard_form:
+            raise ValueError("Directrices can only be computed for hyperbolas in standard form")
+        # Directrices are lines parallel to the semi-conjugate axis, a distance of +/- 'a/e' from the center
+        a, e = self.semi_transverse_axis, self.eccentricity
+        x = sympy.symbols('x')
+        return [sympy.Eq(x, (self.centre[0] - a / e)), sympy.Eq(x, (self.centre[0] + a / e))]
 
     @property
     def asymptotes(self):
-        """To be implemented: return the equations of the asymptotes of the hyperbola"""
-        pass
+        if not self.standard_form:
+            raise ValueError("Asymptotes can only be computed for hyperbolas in standard form")
+        a, b = self.semi_transverse_axis, self.semi_conjugate_axis
+        x, y = sympy.symbols('x y')
+        return[sympy.Eq(y, (self.centre[0] - (b / a) * x)), sympy.Eq(y, (self.centre[0] + (b / a) * x))]
 
     def get_info(self):
         print(f"{self.__repr__()}\nType: {self.type}\nCoefficients: {self.coeff}"
               f"\nGeneral Form: {self}\n")
         self.print_matrices()
         print(f"Centre: {self.centre}")
-        if self.orientation[0] == 'rotated':
+        if self.orientation[0] == 'Rotated':
             angle_in_degrees = sympy.N(sympy.deg(self.orientation[1]), 5)
             print(f"Orientation: {self.orientation[0]}, {angle_in_degrees} degrees\nradians: {self.orientation[1]}\n")
         else:
@@ -1070,7 +1081,18 @@ class Hyperbola(Conic):
 
     def _get_rotation_angle(self):
         """Abstract method of rotate"""
-        pass
+        orientation, rotation_angle = self.orientation[0], self.orientation[1]
+
+        if orientation == "Vertical":
+            rotation_angle = sympy.pi / 2  # 90
+
+        if orientation == "Rotated":
+            if rotation_angle < 0:
+                rotation_angle = (abs(rotation_angle)).evalf()
+            else:
+                rotation_angle = (sympy.pi - rotation_angle).evalf()
+
+        return rotation_angle
 
     def _get_translation_point(self):
         """Abstract method of translate"""
@@ -1089,51 +1111,49 @@ class Hyperbola(Conic):
             self._update_from_matrix()
 
     def record_state(self):
-        """To be implemented: record the current state of the hyperbola"""
-        pass
-
-    def print_history(self):
-        """To be implemented: print the history of the transformations applied to the hyperbola"""
-        pass
+        """
+        This method records the current state of the ellipse in the history of the object.
+        """
+        self.history.append({
+            'Coefficients': self.coefficients,
+            'Matrix': self.coeff_matrix,
+            'Equation': str(self),
+            'Orientation': self.orientation,
+            'Centre': self.centre,
+            'Standard Form?': self.standard_form
+            })
 
     def plot(self, x_range=None, y_range=None):
-        """
-        Method to plot an instance of a hyperbola along with its centre and transverse axis line.
-        """
-        plt.figure(figsize=(10, 8))
+        plot_hyperbola(self, x_range, y_range)
 
-        # Default ranges
-        if x_range is None:
-            x_range = (-10, 10)
-        if y_range is None:
-            y_range = (-10, 10)
+    def plot_standard(self, x_range=None, y_range=None, decimal_places=4):
+        if self.standard_form:
+            hyperbola_standard(self, x_range, y_range)
+            sympy.init_printing()
 
-        x = np.linspace(*x_range, 400)
-        y = np.linspace(*y_range, 400)
-        x, y = np.meshgrid(x, y)
+            # Eccentricity
+            print("------")
+            print("Eccentricity: \n")
+            print("Approximation: ", sympy.N(self.eccentricity, decimal_places))
+            print("Exact: ", end="")
+            display(self.eccentricity)
 
-        # Plot the hyperbola
-        plt.contour(x, y, (self.A * x ** 2 + self.B * x * y + self.C * y ** 2
-                           + self.D * x + self.E * y + self.F), [1], colors='r')
+            # Foci
+            print("\n------")
+            print("Foci: \n")
+            for element in self.foci:
+                rounded_element = tuple(sympy.N(val, decimal_places) for val in element)
+                print("Approximation: ", rounded_element)
+                print("Exact: ", end="")
+                display(element)
 
-        # Plot the centre
-        plt.plot(*self.centre, 'go')
-
-        # Plot the transverse axis line
-        if self.orientation[0] == 'Rotated':
-            transverse_axis_line = self.transverse_axis_line()
-            x_line = np.linspace(*x_range, 100)
-            y_line = sympy.lambdify(sympy.symbols('x'), transverse_axis_line.rhs, 'numpy')(x_line)
-            plt.plot(x_line, y_line, 'b--')
-        elif self.orientation[0] == 'Horizontal':
-            plt.axhline(self.centre[1], color='b', linestyle='--')
-        else:  # Vertical
-            plt.axvline(self.centre[0], color='b', linestyle='--')
-
-        plt.gca().set_aspect('equal', adjustable='box')
-        plt.axhline(0, color='gray', linewidth=0.5)
-        plt.axvline(0, color='gray', linewidth=0.5)
-        plt.title(f"${self.__str__()}$")
-        plt.show()
-
-
+            # Vertices
+            print("\n------")
+            print("Vertices: \n")
+            for element in self.vertices:
+                rounded_element = tuple(sympy.N(val, decimal_places) for val in element)
+                print("Approximation: ", rounded_element)
+                print("Exact: ", end="")
+                display(element)
+        else:
+            print("Ellipse not in standard form")
