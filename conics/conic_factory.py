@@ -865,7 +865,7 @@ class Ellipse(Conic):
     def _standard_form_flag(self):
         """Abstract method of rotate and translate"""
         # Update standard_form flag
-        if self.centre == (0, 0) and self.orientation[0] == 'horizontal':
+        if self.centre == (0, 0) and self.orientation[0] == 'Horizontal':
             self.standard_form = True
             # Normalise the constant term in coefficient matrix
             self.coeff_matrix = abs(1/self.F) * self.coeff_matrix
@@ -906,21 +906,6 @@ class Ellipse(Conic):
             for element in self.foci:
                 rounded_element = tuple(sympy.N(val, decimal_places) for val in element)
                 print("Approximation: ", rounded_element)
-                print("Exact: ", end="")
-                display(element)
-
-            # Directrices
-            print("\n------")
-            print("Directrices: \n")
-            for element in self.directrices:
-                # Get left and right sides of the equation
-                lhs = element.lhs
-                rhs = element.rhs
-                # Approximate the right side
-                rounded_rhs = sympy.N(rhs, decimal_places)
-                # Print the approximation
-                print(f"Approximation: {lhs} = {rounded_rhs}")
-                # Display the exact value
                 print("Exact: ", end="")
                 display(element)
 

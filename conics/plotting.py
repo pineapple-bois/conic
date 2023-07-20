@@ -180,26 +180,22 @@ def plot_ellipse(self, x_range=None, y_range=None):
     plt.show()
 
 
-def ellipse_standard(self, x_range=None, y_range=None):
+def ellipse_standard(self, x_range=None, y_range=None, fig_size=(12, 8)):
     """
     Plot the ellipse with its foci, directrices, and vertices.
     """
     # Define the plot
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=fig_size)
 
     if not x_range:
         x_range = [-10, 10]
     if not y_range:
         y_range = [-10, 10]
 
-    # Convert sympy expressions to lambdified expressions for plotting
-    x, y = sympy.symbols('x y')
-
     x_vals, y_vals = np.mgrid[x_range[0]:x_range[1]:200j, y_range[0]:y_range[1]:200j]  # grid of points
 
     # Define the ellipse's equation from the coefficients
-    z = (self.A * x_vals ** 2 + self.B * x_vals * y_vals + self.C * y_vals ** 2
-         + self.D * x_vals + self.E * y_vals + self.F)
+    z = (self.A * x_vals ** 2 + self.C * y_vals ** 2 + self.F)
 
     # Plot the ellipse
     ax.contour(x_vals, y_vals, z, levels=[0], colors='red')
@@ -210,12 +206,12 @@ def ellipse_standard(self, x_range=None, y_range=None):
 
     # Plot the directrices
     for d in self.directrices:
-        ax.axvline(d.rhs, color='blue')  # d.rhs gives the right-hand side of the equation x = constant
+        ax.axvline(d.rhs, color='blue', linewidth=0.5, linestyle='dashed')
 
     # Plot the vertices
     for v_set in self.vertices:
         for v in v_set:
-            ax.plot(v[0], v[1], 'purple', marker='o')
+            ax.plot(v[0], v[1], 'mo')
 
     ax.set_aspect('equal', adjustable='box')
     plt.axhline(0, color='gray', linewidth=0.5)
@@ -224,13 +220,16 @@ def ellipse_standard(self, x_range=None, y_range=None):
     # Define the patches for the legend
     red_patch = patches.Patch(color='red', label='Ellipse')
     green_patch = patches.Patch(color='green', label='Foci')
-    blue_patch = patches.Patch(color='blue', label='Directrices')
-    purple_patch = patches.Patch(color='purple', label='Vertices')
+    blue_patch = patches.Patch(color='blue', label=f'Directrices: $x= \\pm {sympy.latex(self.directrices[1].rhs)}$')
+    magenta_patch = patches.Patch(color='magenta', label='Vertices')
 
-    # Add legend
-    plt.legend(handles=[red_patch, green_patch, blue_patch, purple_patch])
-
+    legend1 = plt.legend(handles=[red_patch, green_patch, magenta_patch,],
+                         loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=3)
+    plt.legend(handles=[blue_patch], loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2)
+    plt.gca().add_artist(legend1)
+    plt.subplots_adjust(left=0.1, bottom=0.2, right=0.9, top=0.9)
     plt.title(f"${self.__str__()}$")
+    plt.tight_layout()  # To ensure that all elements fit within the figure boundaries
     plt.show()
 
 
@@ -320,7 +319,7 @@ def hyperbola_standard(self, x_range=None, y_range=None, fig_size=(16, 8)):
     # Define the ellipse's equation from the coefficients
     z = (self.A * x_vals ** 2 + self.C * y_vals ** 2 + self.F)
 
-    # Plot the ellipse
+    # Plot the hyperbola
     ax.contour(x_vals, y_vals, z, levels=[0], colors='red')
 
     # Plot the foci
@@ -352,7 +351,6 @@ def hyperbola_standard(self, x_range=None, y_range=None, fig_size=(16, 8)):
     purple_patch = patches.Patch(color='purple', label=f'Asymptotes: $y=\\pm {sympy.latex(self.asymptotes[1].rhs)}$')
     cyan_patch = patches.Patch(color='cyan', label='Vertices')
 
-    # Add legend
     legend1 = plt.legend(handles=[red_patch, green_patch, cyan_patch,], loc='upper center', bbox_to_anchor=(0.5, -0.10), ncol=3)
     plt.legend(handles=[purple_patch, blue_patch], loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2)
     plt.gca().add_artist(legend1)
