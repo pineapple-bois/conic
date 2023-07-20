@@ -166,14 +166,10 @@ pip install .
 
 ### Further Development
 
-- Basic Hyperbola methods now implemented ✅
-
-Next
-
 - Adapting `poly_dictionary` to accept radical coefficients 
-- Adding additional parameters to the transformation methods to perform arbitrary translation and rotation in $\mathbb{E}^2$
-- Allowing scaling and dilation
-- Extensive testing is required. I plan to use `unittest`
+- Additional parameters to the transformation methods to perform arbitrary translation and rotation in $\mathbb{E}^2$
+- Allow scaling and dilation
+- Testing is required. I plan to use `unittest`
 - Writing extensive instruction and documentation
 - Eliminating all floating-point error accumulation. Currently, the rotation is performed using the floating point rotation angle in radians albeit to a relatively high precision.
 - Two conic objects will be allowed to 'interact' (eventually)
