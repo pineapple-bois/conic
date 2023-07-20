@@ -1141,4 +1141,4 @@ class Hyperbola(Conic):
                 print("Exact: ", end="")
                 display(element)
         else:
-            print("Ellipse not in standard form")
+            print("Hyperbola not in standard form")
