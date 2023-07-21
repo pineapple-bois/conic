@@ -50,7 +50,7 @@ def plot_parabola(conic, x_range=None, y_range=None):
         y = np.linspace(y_range[0], y_range[1], 400)
         x, y = np.meshgrid(x, y)
         plt.contour(x, y, (conic.A * x ** 2 + conic.B * x * y + conic.C * y ** 2
-                           + conic.D * x + conic.E * y + conic.F), [1], colors='r')
+                           + conic.D * x + conic.E * y + conic.F), [0], colors='r')
 
         # Plot the axis of symmetry
         x_sym, y_sym = sympy.symbols('x y')
