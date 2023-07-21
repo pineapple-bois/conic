@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import sympy
 from abc import abstractmethod
-from fractions import Fraction
 from IPython.display import Math, display
 from conics.poly_dictionary import decompose_polynomial
 from conics.plotting import *
@@ -53,6 +52,7 @@ class Conic:
         elif conic_type == "Hyperbola" or conic_type == "Rectangular Hyperbola":
             return Hyperbola(equation)
         else:
+            print(f"Conic type: {conic_type}")
             raise ValueError('Cannot instantiate this type of the conic section')
 
     @abstractmethod
@@ -67,7 +67,7 @@ class Conic:
 
     @abstractmethod
     def _standard_form_flag(self):
-        """Updates the standard form flag in the parent class"""
+        """Updates the standard form flag in the child class"""
         pass
 
     @property
@@ -233,18 +233,52 @@ class Conic:
                 for key, value in item.items():
                     print(f"{key} :\n{value}\n")
 
-    def rotate(self, display=False, rational=True, threshold=1e-14, tolerance=0.001):
+    def rotate(self, display=False, rotate_it=None, threshold=1e-14, tolerance=0.001, rational=True):
         """
-        This method uses a rotation matrix to rotate the conic section.
-        The rotation angle is determined using an abstract method unique within each subclass
+        Rotates the conic section by a given angle or an angle calculated by an abstract method
+        specific to each subclass.
 
-        The rotation operation is recorded in the object's history.
+        The rotation operation is recorded in the object's history. If the type of the conic
+        section is a parabola, the orientation history is updated with the coefficients before the rotation,
+        if no specific rotation angle is provided.
+        After the rotation if a `rotate_it` argument provided
+
+        ----
+        Parameters:
+        ----
+
+        display (bool): Default is False.
+            If set to True, a symbolic representation of the rotation is displayed.
+
+        rotate_it (int, float): Default is None.
+            The angle in degrees by which the conic section should be rotated.
+            If None, the rotation angle is determined using the method _get_rotation_angle().
+
+        threshold (float): Default is 1e-14.
+            The absolute value threshold below which an element in the coefficient matrix
+            is considered negligible and set to zero.
+
+        tolerance (float): Default is 0.001.
+            Tolerance for rounding the coefficients of the rotated conic section equation.
+
+        rational (bool): Default is True.
+            If True, the coefficients of the rotated conic section equation are rationalised.
+
+        ----
+        Returns: None
+        ----
+
+        Updates the state of the object in-place.
         """
         self.history.append(f"Equation: {str(self)}")
-        if self.type == 'Parabola':
-            self.orientation_history.append(self.coefficients)
+        if rotate_it is None:
+            if self.type == 'Parabola':
+                self.orientation_history.append(self.coefficients)
 
-        rotation_angle = self._get_rotation_angle()
+        if rotate_it:
+            rotation_angle = sympy.rad(rotate_it)
+        else:
+            rotation_angle = self._get_rotation_angle()
 
         R = sympy.Matrix([[sympy.cos(rotation_angle), sympy.sin(rotation_angle), 0],
                           [-sympy.sin(rotation_angle), sympy.cos(rotation_angle), 0],
@@ -252,8 +286,9 @@ class Conic:
 
         self.coeff_matrix = R.transpose() * self.coeff_matrix * R
 
-        # if the absolute value of an element in coeff_matrix is less than threshold, we set it to 0
-        self._clean_coeff_matrix(threshold, tolerance, rational)
+        if rotate_it is None:
+            # if the absolute value of an element in coeff_matrix is less than threshold, we set it to 0
+            self._clean_coeff_matrix(threshold, tolerance, rational)
 
         self.history.append(f"Performed rotation by {round(float(sympy.deg(rotation_angle)), 4)} degrees CCW")
         self._update_from_matrix()
@@ -262,14 +297,41 @@ class Conic:
         # Update History
         self.record_state()
 
+        if rotate_it is not None:
+            if self.type == 'Parabola':
+                self.orientation_history.append(self.coefficients)
+
         if display:
-            self._symbolic_rotation()
+            self._symbolic_rotation(rotation_angle)
 
     def translate(self, rational=False, display=False, threshold=1e-14, tolerance=0.001):
         """
         Translates the vertex/centre of the conic to the origin.
 
         The translation operation is recorded in the object's history.
+
+        ----
+        Parameters:
+        ----
+
+        rational (bool): Default is False.
+            If True, the coefficients of the translated conic section equation are rationalised.
+
+        display (bool): Default is False.
+            If True, a symbolic representation of the translation is displayed.
+
+        threshold (float): Default is 1e-14.
+            The absolute value threshold below which an element in the coefficient matrix
+            is considered negligible and set to zero.
+
+        tolerance (float): Default is 0.001.
+            Tolerance for rounding the coefficients of the translated conic section equation.
+
+        ----
+        Returns: None
+        ----
+
+        Updates the state of the object in-place.
         """
         h, k, original = self._get_translation_point()
 
@@ -293,9 +355,9 @@ class Conic:
         self.record_state()
 
         if display:
-            self._symbolic_translation()
+            self._symbolic_translation(original)
 
-    def _symbolic_rotation(self):
+    def _symbolic_rotation(self, rotation_angle):
         # Define your rotation matrix R
         theta = sympy.symbols('theta')
         R = sympy.Matrix([
@@ -311,12 +373,16 @@ class Conic:
             [D / 2, E / 2, F]])
 
         # Display the symbolic operation
-        print("We form a rotation matrix R:")
-        display(Math('\\textbf{R}^T \cdot \\textbf{M} \cdot \\textbf{R}'))
-        print("Such that,")
-        display(Math(f'{sympy.latex(R.transpose())} \cdot {sympy.latex(M)} \cdot {sympy.latex(R)}'))
+        print(f"We form a rotation matrix R: ")
+        display(R)
+        print(f"Where theta = {rotation_angle} radians")
+        print("\nThe coefficient matrix is multiplied from either side by the rotation matrix and its transpose,")
+        display(Math('\\textbf{R}^T \\cdot \\textbf{M} \\cdot \\textbf{R}'))
+        display(Math(f'{sympy.latex(R.transpose())} \\cdot {sympy.latex(M)} \\cdot {sympy.latex(R)}'))
+        print("Such that:")
+        display(self.coeff_matrix)
 
-    def _symbolic_translation(self):
+    def _symbolic_translation(self, original):
         h, k = sympy.symbols('h k')
         T = sympy.Matrix([[1, 0, h],
                           [0, 1, k],
@@ -330,28 +396,31 @@ class Conic:
 
         # Display the symbolic operation
         point = 'vertex' if self.type == "Parabola" else 'centre'
-        print(f"We form a translation matrix T where (h, k) are the coordinates (x, y) of the {point}")
-        display(Math('\\textbf{T}^T \cdot \\textbf{M} \cdot \\textbf{T}'))
-        print("Such that")
-        display(Math(f'{sympy.latex(T.transpose())} \cdot {sympy.latex(M)} \cdot {sympy.latex(T)}'))
+        print("We form a translation matrix T")
+        display(T)
+        print(f"Where (h, k) are the coordinates of the {point}, {original}")
+        print("\nThe coefficient matrix is multiplied from either side by the translation matrix and its transpose,")
+        display(Math('\\textbf{T}^T \\cdot \\textbf{M} \\cdot \\textbf{T}'))
+        display(Math(f'{sympy.latex(T.transpose())} \\cdot {sympy.latex(M)} \\cdot {sympy.latex(T)}'))
+        print("Such that:")
+        display(self.coeff_matrix)
 
     def _convert_to_sympy_expression(self, rational=False, force=True):
         """
         Converts the current polynomial expression into a sympy expression.
         """
+        x, y = sympy.symbols('x y')
+
         if self.expression is None or force:
-            # Create the symbols x, y
-            x, y = sympy.symbols('x y')
+            if rational:
+                polynomial = sum(sympy.Rational(str(coeff)) * x ** powers[0] * y ** powers[1]
+                                 for powers, coeff in self.coeff.items())
+            else:
+                polynomial = sum(
+                    coeff * x ** powers[0] * y ** powers[1] for powers, coeff in self.coeff.items())
 
-        if rational:
-            polynomial = sum(
-                sympy.Rational(str(coeff)) * x ** powers[0] * y ** powers[1] for powers, coeff in self.coeff.items())
-        else:
-            polynomial = sum(
-                coeff * x ** powers[0] * y ** powers[1] for powers, coeff in self.coeff.items())
-
-        # Create a sympy.Poly object
-        self.expression = sympy.Poly(polynomial, (x, y))
+            # Create a sympy.Poly object
+            self.expression = sympy.Poly(polynomial, (x, y))
 
         return self.expression
 
@@ -434,6 +503,16 @@ class Parabola(Conic):
         if not self.standard_form:
             raise ValueError("The parabola is not in standard form")
         return 4 * self.a
+
+    @staticmethod
+    def _rational_or_radical(x):
+        """
+        Convert x to a rational number if it is a float, otherwise leave it as it is.
+        """
+        if isinstance(x, (float, int, sympy.Float)):
+            return sympy.Rational(x).limit_denominator(100000)
+        else:
+            return x
 
     def get_info(self):
         print(f"{self.__repr__()}\nType: {self.type}\nCoefficients: {self.coeff}"
@@ -624,15 +703,6 @@ class Parabola(Conic):
         if self.vertex == (0, 0) and self.orientation == ('Horizontal', 'Positive'):
             self.standard_form = True
 
-    def _rational_or_radical(self, x):
-        """
-        Convert x to a rational number if it is a float, otherwise leave it as it is.
-        """
-        if isinstance(x, (float, int, sympy.Float)):
-            return sympy.Rational(x).limit_denominator(100000)
-        else:
-            return x
-
     def record_state(self):
         """
         This method records the current state of the parabola in the history of the object.
@@ -656,7 +726,7 @@ class Parabola(Conic):
 class Circle(Conic):
     def __init__(self, equation):
         super().__init__(equation)
-        self.history = []
+        self.standard_form = False
 
     @property
     def radius(self):
@@ -697,13 +767,21 @@ class Circle(Conic):
         return 2 * sympy.pi * self.radius, sympy.N(2 * sympy.pi * self.radius, 6)
 
     def rotate(self, *args, **kwargs):
-        print("Rotation operation is not applicable for circles.")
+        print("The rotation operation is not applicable for circles.")
+
+    def _get_rotation_angle(self, *args, **kwargs):
+        print("The rotation operation is not applicable for circles.")
 
     def _get_translation_point(self):
         """Abstract method of translate"""
         h, k = self.centre[0], self.centre[1]
         original = h, k
         return h, k, original
+
+    def _standard_form_flag(self):
+        # Update standard_form flag
+        if self.centre == (0, 0):
+            self.standard_form = True
 
     def plot(self, x_range=None, y_range=None):
         plot_circle(self, x_range, y_range)
@@ -724,7 +802,10 @@ class Ellipse(Conic):
         Return the orientation of the ellipse: 'Horizontal', 'Vertical' or 'Rotated'.
         """
         # Calculate the angle in radians
-        theta = sympy.Rational(1, 2) * sympy.atan(sympy.Rational(self.B, (self.A - self.C)))
+        try:
+            theta = sympy.Rational(1, 2) * sympy.atan(sympy.Rational(self.B, (self.A - self.C)))
+        except TypeError:
+            theta = sympy.Rational(1, 2) * sympy.atan(self.B / (self.A - self.C))
 
         # Use sympy's equivalence checking for comparison
         if self.B != 0:
@@ -937,7 +1018,10 @@ class Hyperbola(Conic):
         Return the orientation of the hyperbola: 'horizontal', 'vertical' or 'rotated'.
         """
         # Calculate the angle in radians
-        theta = sympy.Rational(1, 2) * sympy.atan(sympy.Rational(self.B, (self.A - self.C)))
+        try:
+            theta = sympy.Rational(1, 2) * sympy.atan(sympy.Rational(self.B, (self.A - self.C)))
+        except TypeError:
+            theta = sympy.Rational(1, 2) * sympy.atan(self.B / (self.A - self.C))
 
         # Use sympy's equivalence checking for comparison
         if self.B != 0:
